@@ -6,6 +6,8 @@ def build():
     prs = argparse.ArgumentParser()
     prs.add_argument('--output-script', default='compile_script.sh', help='Path for bash script to be written to')
     prs.add_argument('--input-dir', default='syr2k_recreations', help='Directory to read prepared templates from')
+    prs.add_argument('--clang', default='/lcrc/project/EE-ECP/jkoo/sw/clang13.2/release_pragma-clang-loop/bin/clang', help="Clang to use (default: Custom Swing system path)")
+    prs.add_argument('--include', default="/home/trandall/ytune_2022/ytopt_tlranda/ytopt/benchmark/syr2k_exp", help="Include directories to utilize in compilation")
     prs.add_argument('--IR', action='store_true', help="Only build IR's")
     return prs
 
@@ -20,14 +22,12 @@ def main(args=None):
     args = parse(args=args)
 
     if args.IR:
-        cmd_template = "/lcrc/project/EE-ECP/jkoo/sw/clang13.2/release_pragma-clang-loop/bin/clang {} polybench.c "+\
-                       "-I/home/trandall/ytune_2022/ytopt_tlranda/ytopt/benchmark/syr2k_exp {} -DPOLYBENCH_TIME "+\
-                       "-std=c99 -fno-unroll-loops -O3 -mllvm -polly -mllvm -polly-process-unprofitable "+\
+        cmd_template = "{} {} polybench.c -I{} -DPOLYBENCH_TIME -std=c99 -fno-unroll-loops -O3 "+\
+                       "-mllvm -polly -mllvm -polly-process-unprofitable "+\
                        "-mllvm -polly-use-llvm-names -ffast-math -march=native -S -emit-llvm"
     else:
-        cmd_template = "/lcrc/project/EE-ECP/jkoo/sw/clang13.2/release_pragma-clang-loop/bin/clang {} polybench.c "+\
-                       "-I/home/trandall/ytune_2022/ytopt_tlranda/ytopt/benchmark/syr2k_exp {} -DPOLYBENCH_TIME "+\
-                       "-std=c99 -fno-unroll-loops -O3 -mllvm -polly -mllvm -polly-process-unprofitable "+\
+        cmd_template = "{} {} polybench.c -I{} -DPOLYBENCH_TIME -std=c99 -fno-unroll-loops -O3 "+\
+                       "-mllvm -polly -mllvm -polly-process-unprofitable "+\
                        "-mllvm -polly-use-llvm-names -ffast-math -march=native -o {}"
 
     with open(args.output_script, 'w') as f:
@@ -37,7 +37,7 @@ def main(args=None):
             # This is hardcoded for syr2k detection for now -- a better means of dataset selection could
             # be extracted from GC_TLA at some point
             size = '-DSMALL_DATASET' if 'syr2k_S' in fname else '-DLARGE_DATASET'
-            cmd = cmd_template.format(args.input_dir+'/'+fname, size, args.input_dir+'/'+fname.rsplit('.',1)[0])
+            cmd = cmd_template.format(args.clang, args.input_dir+'/'+fname, args.include, size, args.input_dir+'/'+fname.rsplit('.',1)[0])
             f.write(f'echo "{cmd}"'+"\n")
             f.write(cmd+"\n")
             if args.IR:
