@@ -1,0 +1,1687 @@
+; ModuleID = 'syr2k_exhaustive/mmp_all_XL_3628.c'
+source_filename = "syr2k_exhaustive/mmp_all_XL_3628.c"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-unknown-linux-gnu"
+
+%struct._IO_FILE = type { i32, i8*, i8*, i8*, i8*, i8*, i8*, i8*, i8*, i8*, i8*, i8*, %struct._IO_marker*, %struct._IO_FILE*, i32, i32, i64, i16, i8, [1 x i8], i8*, i64, %struct._IO_codecvt*, %struct._IO_wide_data*, %struct._IO_FILE*, i8*, i64, i32, [20 x i8] }
+%struct._IO_marker = type opaque
+%struct._IO_codecvt = type opaque
+%struct._IO_wide_data = type opaque
+
+@stderr = external dso_local local_unnamed_addr global %struct._IO_FILE*, align 8
+@.str.1 = private unnamed_addr constant [23 x i8] c"==BEGIN DUMP_ARRAYS==\0A\00", align 1
+@.str.2 = private unnamed_addr constant [15 x i8] c"begin dump: %s\00", align 1
+@.str.3 = private unnamed_addr constant [2 x i8] c"C\00", align 1
+@.str.5 = private unnamed_addr constant [8 x i8] c"%0.2lf \00", align 1
+@.str.6 = private unnamed_addr constant [17 x i8] c"\0Aend   dump: %s\0A\00", align 1
+@.str.7 = private unnamed_addr constant [23 x i8] c"==END   DUMP_ARRAYS==\0A\00", align 1
+
+; Function Attrs: nounwind uwtable
+define dso_local i32 @main(i32 %argc, i8** nocapture readonly %argv) local_unnamed_addr #0 {
+entry:
+  %call = tail call i8* @polybench_alloc_data(i64 1440000, i32 8) #6
+  %call823 = bitcast i8* %call to [1200 x double]*
+  %call1 = tail call i8* @polybench_alloc_data(i64 1200000, i32 8) #6
+  %call2 = tail call i8* @polybench_alloc_data(i64 1200000, i32 8) #6
+  %arraydecay3 = bitcast i8* %call1 to [1000 x double]*
+  %arraydecay4 = bitcast i8* %call2 to [1000 x double]*
+  %polly.access.cast.call1675 = bitcast i8* %call1 to double*
+  %polly.access.call1684 = getelementptr i8, i8* %call1, i64 9600000
+  %0 = icmp ule i8* %polly.access.call1684, %call2
+  %polly.access.call2704 = getelementptr i8, i8* %call2, i64 9600000
+  %1 = icmp ule i8* %polly.access.call2704, %call1
+  %2 = or i1 %0, %1
+  %polly.access.call724 = getelementptr i8, i8* %call, i64 11520000
+  %3 = icmp ule i8* %polly.access.call724, %call2
+  %4 = icmp ule i8* %polly.access.call2704, %call
+  %5 = or i1 %3, %4
+  %6 = and i1 %2, %5
+  %7 = icmp ule i8* %polly.access.call724, %call1
+  %8 = icmp ule i8* %polly.access.call1684, %call
+  %9 = or i1 %7, %8
+  %10 = and i1 %9, %6
+  br i1 %10, label %polly.loop_header797, label %for.cond1.preheader.i
+
+for.cond1.preheader.i:                            ; preds = %entry, %for.inc17.i
+  %indvars.iv16.i = phi i64 [ %indvars.iv.next17.i, %for.inc17.i ], [ 0, %entry ]
+  %11 = mul nuw nsw i64 %indvars.iv16.i, 8000
+  %12 = add nuw i64 %11, 8000
+  %scevgep1111 = getelementptr i8, i8* %call2, i64 %12
+  %scevgep1110 = getelementptr i8, i8* %call2, i64 %11
+  %scevgep1109 = getelementptr i8, i8* %call1, i64 %12
+  %scevgep1108 = getelementptr i8, i8* %call1, i64 %11
+  %bound0 = icmp ult i8* %scevgep1108, %scevgep1111
+  %bound1 = icmp ult i8* %scevgep1110, %scevgep1109
+  %found.conflict = and i1 %bound0, %bound1
+  br i1 %found.conflict, label %for.body3.i, label %vector.ph
+
+vector.ph:                                        ; preds = %for.cond1.preheader.i
+  %broadcast.splatinsert = insertelement <4 x i64> poison, i64 %indvars.iv16.i, i32 0
+  %broadcast.splat = shufflevector <4 x i64> %broadcast.splatinsert, <4 x i64> poison, <4 x i32> zeroinitializer
+  br label %vector.body
+
+vector.body:                                      ; preds = %vector.body, %vector.ph
+  %index = phi i64 [ 0, %vector.ph ], [ %index.next, %vector.body ]
+  %vec.ind = phi <4 x i64> [ <i64 0, i64 1, i64 2, i64 3>, %vector.ph ], [ %vec.ind.next, %vector.body ]
+  %13 = mul nuw nsw <4 x i64> %vec.ind, %broadcast.splat
+  %14 = trunc <4 x i64> %13 to <4 x i32>
+  %15 = add <4 x i32> %14, <i32 1, i32 1, i32 1, i32 1>
+  %16 = urem <4 x i32> %15, <i32 1200, i32 1200, i32 1200, i32 1200>
+  %17 = sitofp <4 x i32> %16 to <4 x double>
+  %18 = fmul fast <4 x double> %17, <double 0x3F4B4E81B4E81B4F, double 0x3F4B4E81B4E81B4F, double 0x3F4B4E81B4E81B4F, double 0x3F4B4E81B4E81B4F>
+  %19 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv16.i, i64 %index
+  %20 = bitcast double* %19 to <4 x double>*
+  store <4 x double> %18, <4 x double>* %20, align 8, !tbaa !2, !alias.scope !6, !noalias !9
+  %21 = add <4 x i32> %14, <i32 2, i32 2, i32 2, i32 2>
+  %22 = urem <4 x i32> %21, <i32 1000, i32 1000, i32 1000, i32 1000>
+  %23 = sitofp <4 x i32> %22 to <4 x double>
+  %24 = fmul fast <4 x double> %23, <double 1.000000e-03, double 1.000000e-03, double 1.000000e-03, double 1.000000e-03>
+  %25 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv16.i, i64 %index
+  %26 = bitcast double* %25 to <4 x double>*
+  store <4 x double> %24, <4 x double>* %26, align 8, !tbaa !2, !alias.scope !9
+  %index.next = add i64 %index, 4
+  %vec.ind.next = add <4 x i64> %vec.ind, <i64 4, i64 4, i64 4, i64 4>
+  %27 = icmp eq i64 %index.next, 1000
+  br i1 %27, label %for.inc17.i, label %vector.body, !llvm.loop !11
+
+for.body3.i:                                      ; preds = %for.cond1.preheader.i, %for.body3.i
+  %indvars.iv10.i = phi i64 [ %indvars.iv.next11.i, %for.body3.i ], [ 0, %for.cond1.preheader.i ]
+  %28 = mul nuw nsw i64 %indvars.iv10.i, %indvars.iv16.i
+  %29 = trunc i64 %28 to i32
+  %30 = add i32 %29, 1
+  %rem.i = urem i32 %30, 1200
+  %conv.i = sitofp i32 %rem.i to double
+  %div.i = fmul fast double %conv.i, 0x3F4B4E81B4E81B4F
+  %arrayidx6.i = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv16.i, i64 %indvars.iv10.i
+  store double %div.i, double* %arrayidx6.i, align 8, !tbaa !2
+  %31 = add i32 %29, 2
+  %rem9.i = urem i32 %31, 1000
+  %conv10.i = sitofp i32 %rem9.i to double
+  %div12.i = fmul fast double %conv10.i, 1.000000e-03
+  %arrayidx16.i = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv16.i, i64 %indvars.iv10.i
+  store double %div12.i, double* %arrayidx16.i, align 8, !tbaa !2
+  %indvars.iv.next11.i = add nuw nsw i64 %indvars.iv10.i, 1
+  %exitcond15.not.i = icmp eq i64 %indvars.iv.next11.i, 1000
+  br i1 %exitcond15.not.i, label %for.inc17.i, label %for.body3.i, !llvm.loop !14
+
+for.inc17.i:                                      ; preds = %vector.body, %for.body3.i
+  %indvars.iv.next17.i = add nuw nsw i64 %indvars.iv16.i, 1
+  %exitcond18.not.i = icmp eq i64 %indvars.iv.next17.i, 1200
+  br i1 %exitcond18.not.i, label %vector.ph1115, label %for.cond1.preheader.i, !llvm.loop !15
+
+vector.ph1115:                                    ; preds = %for.inc17.i, %for.inc41.i
+  %indvars.iv7.i = phi i64 [ %indvars.iv.next8.i, %for.inc41.i ], [ 0, %for.inc17.i ]
+  %broadcast.splatinsert1122 = insertelement <4 x i64> poison, i64 %indvars.iv7.i, i32 0
+  %broadcast.splat1123 = shufflevector <4 x i64> %broadcast.splatinsert1122, <4 x i64> poison, <4 x i32> zeroinitializer
+  br label %vector.body1114
+
+vector.body1114:                                  ; preds = %vector.body1114, %vector.ph1115
+  %index1116 = phi i64 [ 0, %vector.ph1115 ], [ %index.next1117, %vector.body1114 ]
+  %vec.ind1120 = phi <4 x i64> [ <i64 0, i64 1, i64 2, i64 3>, %vector.ph1115 ], [ %vec.ind.next1121, %vector.body1114 ]
+  %32 = mul nuw nsw <4 x i64> %vec.ind1120, %broadcast.splat1123
+  %33 = trunc <4 x i64> %32 to <4 x i32>
+  %34 = add <4 x i32> %33, <i32 3, i32 3, i32 3, i32 3>
+  %35 = urem <4 x i32> %34, <i32 1200, i32 1200, i32 1200, i32 1200>
+  %36 = sitofp <4 x i32> %35 to <4 x double>
+  %37 = fmul fast <4 x double> %36, <double 1.000000e-03, double 1.000000e-03, double 1.000000e-03, double 1.000000e-03>
+  %38 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv7.i, i64 %index1116
+  %39 = bitcast double* %38 to <4 x double>*
+  store <4 x double> %37, <4 x double>* %39, align 8, !tbaa !2
+  %index.next1117 = add i64 %index1116, 4
+  %vec.ind.next1121 = add <4 x i64> %vec.ind1120, <i64 4, i64 4, i64 4, i64 4>
+  %40 = icmp eq i64 %index.next1117, 1200
+  br i1 %40, label %for.inc41.i, label %vector.body1114, !llvm.loop !16
+
+for.inc41.i:                                      ; preds = %vector.body1114
+  %indvars.iv.next8.i = add nuw nsw i64 %indvars.iv7.i, 1
+  %exitcond9.not.i = icmp eq i64 %indvars.iv.next8.i, 1200
+  br i1 %exitcond9.not.i, label %init_array.exit, label %vector.ph1115, !llvm.loop !17
+
+init_array.exit:                                  ; preds = %for.inc41.i, %polly.loop_exit858
+  tail call void (...) @polybench_timer_start() #6
+  %41 = and i1 %9, %5
+  br i1 %41, label %polly.start480, label %for.cond1.preheader.i45
+
+for.cond1.preheader.i45:                          ; preds = %init_array.exit, %for.inc6.i
+  %indvars.iv21.i = phi i64 [ %indvars.iv.next22.i, %for.inc6.i ], [ 0, %init_array.exit ]
+  %cmp24.not.i = icmp eq i64 %indvars.iv21.i, 0
+  br i1 %cmp24.not.i, label %for.inc6.i, label %for.body3.i46.preheader
+
+for.body3.i46.preheader:                          ; preds = %for.cond1.preheader.i45
+  %min.iters.check1178 = icmp ult i64 %indvars.iv21.i, 4
+  br i1 %min.iters.check1178, label %for.body3.i46.preheader1255, label %vector.ph1179
+
+vector.ph1179:                                    ; preds = %for.body3.i46.preheader
+  %n.vec1181 = and i64 %indvars.iv21.i, 9223372036854775804
+  br label %vector.body1177
+
+vector.body1177:                                  ; preds = %vector.body1177, %vector.ph1179
+  %index1182 = phi i64 [ 0, %vector.ph1179 ], [ %index.next1183, %vector.body1177 ]
+  %42 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv21.i, i64 %index1182
+  %43 = bitcast double* %42 to <4 x double>*
+  %wide.load = load <4 x double>, <4 x double>* %43, align 8, !tbaa !2
+  %44 = fmul fast <4 x double> %wide.load, <double 1.200000e+00, double 1.200000e+00, double 1.200000e+00, double 1.200000e+00>
+  %45 = bitcast double* %42 to <4 x double>*
+  store <4 x double> %44, <4 x double>* %45, align 8, !tbaa !2
+  %index.next1183 = add i64 %index1182, 4
+  %46 = icmp eq i64 %index.next1183, %n.vec1181
+  br i1 %46, label %middle.block1175, label %vector.body1177, !llvm.loop !18
+
+middle.block1175:                                 ; preds = %vector.body1177
+  %cmp.n1185 = icmp eq i64 %indvars.iv21.i, %n.vec1181
+  br i1 %cmp.n1185, label %for.inc6.i, label %for.body3.i46.preheader1255
+
+for.body3.i46.preheader1255:                      ; preds = %for.body3.i46.preheader, %middle.block1175
+  %indvars.iv18.i.ph = phi i64 [ 0, %for.body3.i46.preheader ], [ %n.vec1181, %middle.block1175 ]
+  br label %for.body3.i46
+
+for.body3.i46:                                    ; preds = %for.body3.i46.preheader1255, %for.body3.i46
+  %indvars.iv18.i = phi i64 [ %indvars.iv.next19.i, %for.body3.i46 ], [ %indvars.iv18.i.ph, %for.body3.i46.preheader1255 ]
+  %arrayidx5.i = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv21.i, i64 %indvars.iv18.i
+  %47 = load double, double* %arrayidx5.i, align 8, !tbaa !2
+  %mul.i = fmul fast double %47, 1.200000e+00
+  store double %mul.i, double* %arrayidx5.i, align 8, !tbaa !2
+  %indvars.iv.next19.i = add nuw nsw i64 %indvars.iv18.i, 1
+  %exitcond20.not.i = icmp eq i64 %indvars.iv.next19.i, %indvars.iv21.i
+  br i1 %exitcond20.not.i, label %for.inc6.i, label %for.body3.i46, !llvm.loop !19
+
+for.inc6.i:                                       ; preds = %for.body3.i46, %middle.block1175, %for.cond1.preheader.i45
+  %indvars.iv.next22.i = add nuw nsw i64 %indvars.iv21.i, 1
+  %exitcond23.not.i = icmp eq i64 %indvars.iv.next22.i, 1200
+  br i1 %exitcond23.not.i, label %for.cond12.preheader.i, label %for.cond1.preheader.i45, !llvm.loop !20
+
+for.cond12.preheader.i:                           ; preds = %for.inc6.i, %for.inc49.i
+  %indvars.iv15.i = phi i64 [ %indvars.iv.next16.i, %for.inc49.i ], [ 0, %for.inc6.i ]
+  %indvars.iv13.i = phi i64 [ %indvars.iv.next14.i, %for.inc49.i ], [ 1, %for.inc6.i ]
+  br label %for.cond15.preheader.i
+
+for.cond15.preheader.i:                           ; preds = %for.inc46.i, %for.cond12.preheader.i
+  %indvars.iv10.i47 = phi i64 [ 0, %for.cond12.preheader.i ], [ %indvars.iv.next11.i51, %for.inc46.i ]
+  %arrayidx26.i = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv15.i, i64 %indvars.iv10.i47
+  %arrayidx36.i = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv15.i, i64 %indvars.iv10.i47
+  br label %for.body17.i
+
+for.body17.i:                                     ; preds = %for.body17.i, %for.cond15.preheader.i
+  %indvars.iv.i48 = phi i64 [ 0, %for.cond15.preheader.i ], [ %indvars.iv.next.i49, %for.body17.i ]
+  %arrayidx21.i = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv.i48, i64 %indvars.iv10.i47
+  %48 = load double, double* %arrayidx21.i, align 8, !tbaa !2, !llvm.access !21
+  %49 = load double, double* %arrayidx26.i, align 8, !tbaa !2
+  %mul27.i = fmul fast double %49, %48
+  %arrayidx31.i = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv.i48, i64 %indvars.iv10.i47
+  %50 = load double, double* %arrayidx31.i, align 8, !tbaa !2
+  %51 = load double, double* %arrayidx36.i, align 8, !tbaa !2, !llvm.access !21
+  %mul37.i = fmul fast double %51, %50
+  %arrayidx41.i = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv15.i, i64 %indvars.iv.i48
+  %52 = load double, double* %arrayidx41.i, align 8, !tbaa !2
+  %reass.add.i = fadd fast double %mul37.i, %mul27.i
+  %reass.mul.i = fmul fast double %reass.add.i, 1.500000e+00
+  %add42.i = fadd fast double %reass.mul.i, %52
+  store double %add42.i, double* %arrayidx41.i, align 8, !tbaa !2
+  %indvars.iv.next.i49 = add nuw nsw i64 %indvars.iv.i48, 1
+  %exitcond.not.i50 = icmp eq i64 %indvars.iv.next.i49, %indvars.iv13.i
+  br i1 %exitcond.not.i50, label %for.inc46.i, label %for.body17.i, !llvm.loop !22
+
+for.inc46.i:                                      ; preds = %for.body17.i
+  %indvars.iv.next11.i51 = add nuw nsw i64 %indvars.iv10.i47, 1
+  %exitcond12.not.i = icmp eq i64 %indvars.iv.next11.i51, 1000
+  br i1 %exitcond12.not.i, label %for.inc49.i, label %for.cond15.preheader.i, !llvm.loop !32
+
+for.inc49.i:                                      ; preds = %for.inc46.i
+  %indvars.iv.next16.i = add nuw nsw i64 %indvars.iv15.i, 1
+  %indvars.iv.next14.i = add nuw nsw i64 %indvars.iv13.i, 1
+  %exitcond17.not.i = icmp eq i64 %indvars.iv.next16.i, 1200
+  br i1 %exitcond17.not.i, label %kernel_syr2k.exit, label %for.cond12.preheader.i, !llvm.loop !46
+
+kernel_syr2k.exit:                                ; preds = %for.inc49.i, %polly.exiting481
+  tail call void (...) @polybench_timer_stop() #6
+  tail call void (...) @polybench_timer_print() #6
+  tail call void (...) @polybench_timer_start() #6
+  br i1 %41, label %polly.start287, label %for.cond1.preheader.i54
+
+for.cond1.preheader.i54:                          ; preds = %kernel_syr2k.exit, %for.inc6.i63
+  %indvars.iv21.i52 = phi i64 [ %indvars.iv.next22.i61, %for.inc6.i63 ], [ 0, %kernel_syr2k.exit ]
+  %cmp24.not.i53 = icmp eq i64 %indvars.iv21.i52, 0
+  br i1 %cmp24.not.i53, label %for.inc6.i63, label %for.body3.i60.preheader
+
+for.body3.i60.preheader:                          ; preds = %for.cond1.preheader.i54
+  %min.iters.check1201 = icmp ult i64 %indvars.iv21.i52, 4
+  br i1 %min.iters.check1201, label %for.body3.i60.preheader1253, label %vector.ph1202
+
+vector.ph1202:                                    ; preds = %for.body3.i60.preheader
+  %n.vec1204 = and i64 %indvars.iv21.i52, 9223372036854775804
+  br label %vector.body1200
+
+vector.body1200:                                  ; preds = %vector.body1200, %vector.ph1202
+  %index1205 = phi i64 [ 0, %vector.ph1202 ], [ %index.next1206, %vector.body1200 ]
+  %53 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv21.i52, i64 %index1205
+  %54 = bitcast double* %53 to <4 x double>*
+  %wide.load1209 = load <4 x double>, <4 x double>* %54, align 8, !tbaa !2
+  %55 = fmul fast <4 x double> %wide.load1209, <double 1.200000e+00, double 1.200000e+00, double 1.200000e+00, double 1.200000e+00>
+  %56 = bitcast double* %53 to <4 x double>*
+  store <4 x double> %55, <4 x double>* %56, align 8, !tbaa !2
+  %index.next1206 = add i64 %index1205, 4
+  %57 = icmp eq i64 %index.next1206, %n.vec1204
+  br i1 %57, label %middle.block1198, label %vector.body1200, !llvm.loop !60
+
+middle.block1198:                                 ; preds = %vector.body1200
+  %cmp.n1208 = icmp eq i64 %indvars.iv21.i52, %n.vec1204
+  br i1 %cmp.n1208, label %for.inc6.i63, label %for.body3.i60.preheader1253
+
+for.body3.i60.preheader1253:                      ; preds = %for.body3.i60.preheader, %middle.block1198
+  %indvars.iv18.i55.ph = phi i64 [ 0, %for.body3.i60.preheader ], [ %n.vec1204, %middle.block1198 ]
+  br label %for.body3.i60
+
+for.body3.i60:                                    ; preds = %for.body3.i60.preheader1253, %for.body3.i60
+  %indvars.iv18.i55 = phi i64 [ %indvars.iv.next19.i58, %for.body3.i60 ], [ %indvars.iv18.i55.ph, %for.body3.i60.preheader1253 ]
+  %arrayidx5.i56 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv21.i52, i64 %indvars.iv18.i55
+  %58 = load double, double* %arrayidx5.i56, align 8, !tbaa !2
+  %mul.i57 = fmul fast double %58, 1.200000e+00
+  store double %mul.i57, double* %arrayidx5.i56, align 8, !tbaa !2
+  %indvars.iv.next19.i58 = add nuw nsw i64 %indvars.iv18.i55, 1
+  %exitcond20.not.i59 = icmp eq i64 %indvars.iv.next19.i58, %indvars.iv21.i52
+  br i1 %exitcond20.not.i59, label %for.inc6.i63, label %for.body3.i60, !llvm.loop !61
+
+for.inc6.i63:                                     ; preds = %for.body3.i60, %middle.block1198, %for.cond1.preheader.i54
+  %indvars.iv.next22.i61 = add nuw nsw i64 %indvars.iv21.i52, 1
+  %exitcond23.not.i62 = icmp eq i64 %indvars.iv.next22.i61, 1200
+  br i1 %exitcond23.not.i62, label %for.cond12.preheader.i66, label %for.cond1.preheader.i54, !llvm.loop !20
+
+for.cond12.preheader.i66:                         ; preds = %for.inc6.i63, %for.inc49.i89
+  %indvars.iv15.i64 = phi i64 [ %indvars.iv.next16.i86, %for.inc49.i89 ], [ 0, %for.inc6.i63 ]
+  %indvars.iv13.i65 = phi i64 [ %indvars.iv.next14.i87, %for.inc49.i89 ], [ 1, %for.inc6.i63 ]
+  br label %for.cond15.preheader.i70
+
+for.cond15.preheader.i70:                         ; preds = %for.inc46.i85, %for.cond12.preheader.i66
+  %indvars.iv10.i67 = phi i64 [ 0, %for.cond12.preheader.i66 ], [ %indvars.iv.next11.i83, %for.inc46.i85 ]
+  %arrayidx26.i68 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv15.i64, i64 %indvars.iv10.i67
+  %arrayidx36.i69 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv15.i64, i64 %indvars.iv10.i67
+  br label %for.body17.i82
+
+for.body17.i82:                                   ; preds = %for.body17.i82, %for.cond15.preheader.i70
+  %indvars.iv.i71 = phi i64 [ 0, %for.cond15.preheader.i70 ], [ %indvars.iv.next.i80, %for.body17.i82 ]
+  %arrayidx21.i72 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv.i71, i64 %indvars.iv10.i67
+  %59 = load double, double* %arrayidx21.i72, align 8, !tbaa !2, !llvm.access !21
+  %60 = load double, double* %arrayidx26.i68, align 8, !tbaa !2
+  %mul27.i73 = fmul fast double %60, %59
+  %arrayidx31.i74 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv.i71, i64 %indvars.iv10.i67
+  %61 = load double, double* %arrayidx31.i74, align 8, !tbaa !2
+  %62 = load double, double* %arrayidx36.i69, align 8, !tbaa !2, !llvm.access !21
+  %mul37.i75 = fmul fast double %62, %61
+  %arrayidx41.i76 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv15.i64, i64 %indvars.iv.i71
+  %63 = load double, double* %arrayidx41.i76, align 8, !tbaa !2
+  %reass.add.i77 = fadd fast double %mul37.i75, %mul27.i73
+  %reass.mul.i78 = fmul fast double %reass.add.i77, 1.500000e+00
+  %add42.i79 = fadd fast double %reass.mul.i78, %63
+  store double %add42.i79, double* %arrayidx41.i76, align 8, !tbaa !2
+  %indvars.iv.next.i80 = add nuw nsw i64 %indvars.iv.i71, 1
+  %exitcond.not.i81 = icmp eq i64 %indvars.iv.next.i80, %indvars.iv13.i65
+  br i1 %exitcond.not.i81, label %for.inc46.i85, label %for.body17.i82, !llvm.loop !22
+
+for.inc46.i85:                                    ; preds = %for.body17.i82
+  %indvars.iv.next11.i83 = add nuw nsw i64 %indvars.iv10.i67, 1
+  %exitcond12.not.i84 = icmp eq i64 %indvars.iv.next11.i83, 1000
+  br i1 %exitcond12.not.i84, label %for.inc49.i89, label %for.cond15.preheader.i70, !llvm.loop !32
+
+for.inc49.i89:                                    ; preds = %for.inc46.i85
+  %indvars.iv.next16.i86 = add nuw nsw i64 %indvars.iv15.i64, 1
+  %indvars.iv.next14.i87 = add nuw nsw i64 %indvars.iv13.i65, 1
+  %exitcond17.not.i88 = icmp eq i64 %indvars.iv.next16.i86, 1200
+  br i1 %exitcond17.not.i88, label %kernel_syr2k.exit90, label %for.cond12.preheader.i66, !llvm.loop !46
+
+kernel_syr2k.exit90:                              ; preds = %for.inc49.i89, %polly.exiting288
+  tail call void (...) @polybench_timer_stop() #6
+  tail call void (...) @polybench_timer_print() #6
+  tail call void (...) @polybench_timer_start() #6
+  br i1 %41, label %polly.start, label %for.cond1.preheader.i93
+
+for.cond1.preheader.i93:                          ; preds = %kernel_syr2k.exit90, %for.inc6.i102
+  %indvars.iv21.i91 = phi i64 [ %indvars.iv.next22.i100, %for.inc6.i102 ], [ 0, %kernel_syr2k.exit90 ]
+  %cmp24.not.i92 = icmp eq i64 %indvars.iv21.i91, 0
+  br i1 %cmp24.not.i92, label %for.inc6.i102, label %for.body3.i99.preheader
+
+for.body3.i99.preheader:                          ; preds = %for.cond1.preheader.i93
+  %min.iters.check1227 = icmp ult i64 %indvars.iv21.i91, 4
+  br i1 %min.iters.check1227, label %for.body3.i99.preheader1251, label %vector.ph1228
+
+vector.ph1228:                                    ; preds = %for.body3.i99.preheader
+  %n.vec1230 = and i64 %indvars.iv21.i91, 9223372036854775804
+  br label %vector.body1226
+
+vector.body1226:                                  ; preds = %vector.body1226, %vector.ph1228
+  %index1231 = phi i64 [ 0, %vector.ph1228 ], [ %index.next1232, %vector.body1226 ]
+  %64 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv21.i91, i64 %index1231
+  %65 = bitcast double* %64 to <4 x double>*
+  %wide.load1235 = load <4 x double>, <4 x double>* %65, align 8, !tbaa !2
+  %66 = fmul fast <4 x double> %wide.load1235, <double 1.200000e+00, double 1.200000e+00, double 1.200000e+00, double 1.200000e+00>
+  %67 = bitcast double* %64 to <4 x double>*
+  store <4 x double> %66, <4 x double>* %67, align 8, !tbaa !2
+  %index.next1232 = add i64 %index1231, 4
+  %68 = icmp eq i64 %index.next1232, %n.vec1230
+  br i1 %68, label %middle.block1224, label %vector.body1226, !llvm.loop !62
+
+middle.block1224:                                 ; preds = %vector.body1226
+  %cmp.n1234 = icmp eq i64 %indvars.iv21.i91, %n.vec1230
+  br i1 %cmp.n1234, label %for.inc6.i102, label %for.body3.i99.preheader1251
+
+for.body3.i99.preheader1251:                      ; preds = %for.body3.i99.preheader, %middle.block1224
+  %indvars.iv18.i94.ph = phi i64 [ 0, %for.body3.i99.preheader ], [ %n.vec1230, %middle.block1224 ]
+  br label %for.body3.i99
+
+for.body3.i99:                                    ; preds = %for.body3.i99.preheader1251, %for.body3.i99
+  %indvars.iv18.i94 = phi i64 [ %indvars.iv.next19.i97, %for.body3.i99 ], [ %indvars.iv18.i94.ph, %for.body3.i99.preheader1251 ]
+  %arrayidx5.i95 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv21.i91, i64 %indvars.iv18.i94
+  %69 = load double, double* %arrayidx5.i95, align 8, !tbaa !2
+  %mul.i96 = fmul fast double %69, 1.200000e+00
+  store double %mul.i96, double* %arrayidx5.i95, align 8, !tbaa !2
+  %indvars.iv.next19.i97 = add nuw nsw i64 %indvars.iv18.i94, 1
+  %exitcond20.not.i98 = icmp eq i64 %indvars.iv.next19.i97, %indvars.iv21.i91
+  br i1 %exitcond20.not.i98, label %for.inc6.i102, label %for.body3.i99, !llvm.loop !63
+
+for.inc6.i102:                                    ; preds = %for.body3.i99, %middle.block1224, %for.cond1.preheader.i93
+  %indvars.iv.next22.i100 = add nuw nsw i64 %indvars.iv21.i91, 1
+  %exitcond23.not.i101 = icmp eq i64 %indvars.iv.next22.i100, 1200
+  br i1 %exitcond23.not.i101, label %for.cond12.preheader.i105, label %for.cond1.preheader.i93, !llvm.loop !20
+
+for.cond12.preheader.i105:                        ; preds = %for.inc6.i102, %for.inc49.i128
+  %indvars.iv15.i103 = phi i64 [ %indvars.iv.next16.i125, %for.inc49.i128 ], [ 0, %for.inc6.i102 ]
+  %indvars.iv13.i104 = phi i64 [ %indvars.iv.next14.i126, %for.inc49.i128 ], [ 1, %for.inc6.i102 ]
+  br label %for.cond15.preheader.i109
+
+for.cond15.preheader.i109:                        ; preds = %for.inc46.i124, %for.cond12.preheader.i105
+  %indvars.iv10.i106 = phi i64 [ 0, %for.cond12.preheader.i105 ], [ %indvars.iv.next11.i122, %for.inc46.i124 ]
+  %arrayidx26.i107 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv15.i103, i64 %indvars.iv10.i106
+  %arrayidx36.i108 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv15.i103, i64 %indvars.iv10.i106
+  br label %for.body17.i121
+
+for.body17.i121:                                  ; preds = %for.body17.i121, %for.cond15.preheader.i109
+  %indvars.iv.i110 = phi i64 [ 0, %for.cond15.preheader.i109 ], [ %indvars.iv.next.i119, %for.body17.i121 ]
+  %arrayidx21.i111 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay3, i64 %indvars.iv.i110, i64 %indvars.iv10.i106
+  %70 = load double, double* %arrayidx21.i111, align 8, !tbaa !2, !llvm.access !21
+  %71 = load double, double* %arrayidx26.i107, align 8, !tbaa !2
+  %mul27.i112 = fmul fast double %71, %70
+  %arrayidx31.i113 = getelementptr inbounds [1000 x double], [1000 x double]* %arraydecay4, i64 %indvars.iv.i110, i64 %indvars.iv10.i106
+  %72 = load double, double* %arrayidx31.i113, align 8, !tbaa !2
+  %73 = load double, double* %arrayidx36.i108, align 8, !tbaa !2, !llvm.access !21
+  %mul37.i114 = fmul fast double %73, %72
+  %arrayidx41.i115 = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv15.i103, i64 %indvars.iv.i110
+  %74 = load double, double* %arrayidx41.i115, align 8, !tbaa !2
+  %reass.add.i116 = fadd fast double %mul37.i114, %mul27.i112
+  %reass.mul.i117 = fmul fast double %reass.add.i116, 1.500000e+00
+  %add42.i118 = fadd fast double %reass.mul.i117, %74
+  store double %add42.i118, double* %arrayidx41.i115, align 8, !tbaa !2
+  %indvars.iv.next.i119 = add nuw nsw i64 %indvars.iv.i110, 1
+  %exitcond.not.i120 = icmp eq i64 %indvars.iv.next.i119, %indvars.iv13.i104
+  br i1 %exitcond.not.i120, label %for.inc46.i124, label %for.body17.i121, !llvm.loop !22
+
+for.inc46.i124:                                   ; preds = %for.body17.i121
+  %indvars.iv.next11.i122 = add nuw nsw i64 %indvars.iv10.i106, 1
+  %exitcond12.not.i123 = icmp eq i64 %indvars.iv.next11.i122, 1000
+  br i1 %exitcond12.not.i123, label %for.inc49.i128, label %for.cond15.preheader.i109, !llvm.loop !32
+
+for.inc49.i128:                                   ; preds = %for.inc46.i124
+  %indvars.iv.next16.i125 = add nuw nsw i64 %indvars.iv15.i103, 1
+  %indvars.iv.next14.i126 = add nuw nsw i64 %indvars.iv13.i104, 1
+  %exitcond17.not.i127 = icmp eq i64 %indvars.iv.next16.i125, 1200
+  br i1 %exitcond17.not.i127, label %kernel_syr2k.exit129, label %for.cond12.preheader.i105, !llvm.loop !46
+
+kernel_syr2k.exit129:                             ; preds = %for.inc49.i128, %polly.exiting
+  tail call void (...) @polybench_timer_stop() #6
+  tail call void (...) @polybench_timer_print() #6
+  %cmp = icmp sgt i32 %argc, 42
+  br i1 %cmp, label %land.lhs.true, label %if.end
+
+land.lhs.true:                                    ; preds = %kernel_syr2k.exit129
+  %75 = load i8*, i8** %argv, align 8, !tbaa !64
+  %strcmpload = load i8, i8* %75, align 1
+  %tobool.not = icmp eq i8 %strcmpload, 0
+  br i1 %tobool.not, label %if.then, label %if.end
+
+if.then:                                          ; preds = %land.lhs.true
+  %76 = load %struct._IO_FILE*, %struct._IO_FILE** @stderr, align 8, !tbaa !64
+  %77 = tail call i64 @fwrite(i8* getelementptr inbounds ([23 x i8], [23 x i8]* @.str.1, i64 0, i64 0), i64 22, i64 1, %struct._IO_FILE* %76) #7
+  %78 = load %struct._IO_FILE*, %struct._IO_FILE** @stderr, align 8, !tbaa !64
+  %call1.i = tail call i32 (%struct._IO_FILE*, i8*, ...) @fprintf(%struct._IO_FILE* %78, i8* getelementptr inbounds ([15 x i8], [15 x i8]* @.str.2, i64 0, i64 0), i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.3, i64 0, i64 0)) #7
+  br label %for.cond2.preheader.i
+
+for.cond2.preheader.i:                            ; preds = %for.inc10.i, %if.then
+  %indvars.iv4.i = phi i64 [ 0, %if.then ], [ %indvars.iv.next5.i, %for.inc10.i ]
+  %79 = mul nuw nsw i64 %indvars.iv4.i, 1200
+  br label %for.body4.i
+
+for.body4.i:                                      ; preds = %if.end.i, %for.cond2.preheader.i
+  %indvars.iv.i41 = phi i64 [ 0, %for.cond2.preheader.i ], [ %indvars.iv.next.i43, %if.end.i ]
+  %80 = add nuw nsw i64 %indvars.iv.i41, %79
+  %81 = trunc i64 %80 to i32
+  %rem.i42 = urem i32 %81, 20
+  %cmp5.i = icmp eq i32 %rem.i42, 0
+  br i1 %cmp5.i, label %if.then.i, label %if.end.i
+
+if.then.i:                                        ; preds = %for.body4.i
+  %82 = load %struct._IO_FILE*, %struct._IO_FILE** @stderr, align 8, !tbaa !64
+  %fputc.i = tail call i32 @fputc(i32 10, %struct._IO_FILE* %82) #6
+  br label %if.end.i
+
+if.end.i:                                         ; preds = %if.then.i, %for.body4.i
+  %83 = load %struct._IO_FILE*, %struct._IO_FILE** @stderr, align 8, !tbaa !64
+  %arrayidx8.i = getelementptr inbounds [1200 x double], [1200 x double]* %call823, i64 %indvars.iv4.i, i64 %indvars.iv.i41
+  %84 = load double, double* %arrayidx8.i, align 8, !tbaa !2
+  %call9.i = tail call i32 (%struct._IO_FILE*, i8*, ...) @fprintf(%struct._IO_FILE* %83, i8* getelementptr inbounds ([8 x i8], [8 x i8]* @.str.5, i64 0, i64 0), double %84) #7
+  %indvars.iv.next.i43 = add nuw nsw i64 %indvars.iv.i41, 1
+  %exitcond.not.i44 = icmp eq i64 %indvars.iv.next.i43, 1200
+  br i1 %exitcond.not.i44, label %for.inc10.i, label %for.body4.i, !llvm.loop !66
+
+for.inc10.i:                                      ; preds = %if.end.i
+  %indvars.iv.next5.i = add nuw nsw i64 %indvars.iv4.i, 1
+  %exitcond7.not.i = icmp eq i64 %indvars.iv.next5.i, 1200
+  br i1 %exitcond7.not.i, label %print_array.exit, label %for.cond2.preheader.i, !llvm.loop !67
+
+print_array.exit:                                 ; preds = %for.inc10.i
+  %85 = load %struct._IO_FILE*, %struct._IO_FILE** @stderr, align 8, !tbaa !64
+  %call13.i = tail call i32 (%struct._IO_FILE*, i8*, ...) @fprintf(%struct._IO_FILE* %85, i8* getelementptr inbounds ([17 x i8], [17 x i8]* @.str.6, i64 0, i64 0), i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.3, i64 0, i64 0)) #7
+  %86 = load %struct._IO_FILE*, %struct._IO_FILE** @stderr, align 8, !tbaa !64
+  %87 = tail call i64 @fwrite(i8* getelementptr inbounds ([23 x i8], [23 x i8]* @.str.7, i64 0, i64 0), i64 22, i64 1, %struct._IO_FILE* %86) #7
+  br label %if.end
+
+if.end:                                           ; preds = %print_array.exit, %land.lhs.true, %kernel_syr2k.exit129
+  tail call void @free(i8* nonnull %call) #6
+  tail call void @free(i8* %call1) #6
+  tail call void @free(i8* %call2) #6
+  ret i32 0
+
+polly.start:                                      ; preds = %kernel_syr2k.exit90
+  %malloccall = tail call dereferenceable_or_null(9600000) i8* @malloc(i64 9600000) #6
+  br label %polly.loop_header
+
+polly.exiting:                                    ; preds = %polly.loop_exit207
+  tail call void @free(i8* %malloccall)
+  br label %kernel_syr2k.exit129
+
+polly.loop_header:                                ; preds = %polly.loop_exit193, %polly.start
+  %indvar1239 = phi i64 [ %indvar.next1240, %polly.loop_exit193 ], [ 0, %polly.start ]
+  %polly.indvar = phi i64 [ %polly.indvar_next, %polly.loop_exit193 ], [ 1, %polly.start ]
+  %88 = add i64 %indvar1239, 1
+  %89 = mul nuw nsw i64 %polly.indvar, 9600
+  %scevgep = getelementptr i8, i8* %call, i64 %89
+  %min.iters.check1241 = icmp ult i64 %88, 4
+  br i1 %min.iters.check1241, label %polly.loop_header191.preheader, label %vector.ph1242
+
+vector.ph1242:                                    ; preds = %polly.loop_header
+  %n.vec1244 = and i64 %88, -4
+  br label %vector.body1238
+
+vector.body1238:                                  ; preds = %vector.body1238, %vector.ph1242
+  %index1245 = phi i64 [ 0, %vector.ph1242 ], [ %index.next1246, %vector.body1238 ]
+  %90 = shl nuw nsw i64 %index1245, 3
+  %91 = getelementptr i8, i8* %scevgep, i64 %90
+  %92 = bitcast i8* %91 to <4 x double>*
+  %wide.load1249 = load <4 x double>, <4 x double>* %92, align 8, !alias.scope !68, !noalias !70
+  %93 = fmul fast <4 x double> %wide.load1249, <double 1.200000e+00, double 1.200000e+00, double 1.200000e+00, double 1.200000e+00>
+  %94 = bitcast i8* %91 to <4 x double>*
+  store <4 x double> %93, <4 x double>* %94, align 8, !alias.scope !68, !noalias !70
+  %index.next1246 = add i64 %index1245, 4
+  %95 = icmp eq i64 %index.next1246, %n.vec1244
+  br i1 %95, label %middle.block1236, label %vector.body1238, !llvm.loop !74
+
+middle.block1236:                                 ; preds = %vector.body1238
+  %cmp.n1248 = icmp eq i64 %88, %n.vec1244
+  br i1 %cmp.n1248, label %polly.loop_exit193, label %polly.loop_header191.preheader
+
+polly.loop_header191.preheader:                   ; preds = %polly.loop_header, %middle.block1236
+  %polly.indvar194.ph = phi i64 [ 0, %polly.loop_header ], [ %n.vec1244, %middle.block1236 ]
+  br label %polly.loop_header191
+
+polly.loop_exit193:                               ; preds = %polly.loop_header191, %middle.block1236
+  %polly.indvar_next = add nuw nsw i64 %polly.indvar, 1
+  %exitcond1018.not = icmp eq i64 %polly.indvar_next, 1200
+  %indvar.next1240 = add i64 %indvar1239, 1
+  br i1 %exitcond1018.not, label %polly.loop_header199.preheader, label %polly.loop_header
+
+polly.loop_header199.preheader:                   ; preds = %polly.loop_exit193
+  %Packed_MemRef_call1 = bitcast i8* %malloccall to double*
+  br label %polly.loop_header199
+
+polly.loop_header191:                             ; preds = %polly.loop_header191.preheader, %polly.loop_header191
+  %polly.indvar194 = phi i64 [ %polly.indvar_next195, %polly.loop_header191 ], [ %polly.indvar194.ph, %polly.loop_header191.preheader ]
+  %96 = shl nuw nsw i64 %polly.indvar194, 3
+  %scevgep197 = getelementptr i8, i8* %scevgep, i64 %96
+  %scevgep197198 = bitcast i8* %scevgep197 to double*
+  %_p_scalar_ = load double, double* %scevgep197198, align 8, !alias.scope !68, !noalias !70
+  %p_mul.i96 = fmul fast double %_p_scalar_, 1.200000e+00
+  store double %p_mul.i96, double* %scevgep197198, align 8, !alias.scope !68, !noalias !70
+  %polly.indvar_next195 = add nuw nsw i64 %polly.indvar194, 1
+  %exitcond1017.not = icmp eq i64 %polly.indvar_next195, %polly.indvar
+  br i1 %exitcond1017.not, label %polly.loop_exit193, label %polly.loop_header191, !llvm.loop !75
+
+polly.loop_header199:                             ; preds = %polly.loop_header199.preheader, %polly.loop_exit207
+  %indvars.iv1008 = phi i64 [ 0, %polly.loop_header199.preheader ], [ %indvars.iv.next1009, %polly.loop_exit207 ]
+  %indvars.iv1004 = phi i64 [ 4, %polly.loop_header199.preheader ], [ %indvars.iv.next1005, %polly.loop_exit207 ]
+  %indvars.iv = phi i64 [ 0, %polly.loop_header199.preheader ], [ %indvars.iv.next, %polly.loop_exit207 ]
+  %polly.indvar202 = phi i64 [ 0, %polly.loop_header199.preheader ], [ %polly.indvar_next203, %polly.loop_exit207 ]
+  %97 = udiv i64 %indvars.iv1004, 5
+  %98 = mul nuw nsw i64 %97, 80
+  %99 = shl nuw nsw i64 %polly.indvar202, 1
+  %100 = trunc i64 %99 to i8
+  %pexp.p_div_q.lhs.trunc = add i8 %100, 4
+  %pexp.p_div_q881 = udiv i8 %pexp.p_div_q.lhs.trunc, 5
+  %pexp.p_div_q.zext = zext i8 %pexp.p_div_q881 to i64
+  %101 = sub nsw i64 %99, %pexp.p_div_q.zext
+  %polly.loop_guard = icmp slt i64 %101, 15
+  br i1 %polly.loop_guard, label %polly.loop_header205.preheader, label %polly.loop_exit207
+
+polly.loop_header205.preheader:                   ; preds = %polly.loop_header199
+  %102 = sub nsw i64 %indvars.iv1008, %98
+  %103 = add i64 %indvars.iv, %98
+  %104 = mul nsw i64 %polly.indvar202, -128
+  %105 = shl nsw i64 %polly.indvar202, 7
+  br label %polly.loop_header205
+
+polly.loop_exit207:                               ; preds = %polly.loop_exit246, %polly.loop_header199
+  %polly.indvar_next203 = add nuw nsw i64 %polly.indvar202, 1
+  %indvars.iv.next = add nsw i64 %indvars.iv, -32
+  %indvars.iv.next1005 = add nuw nsw i64 %indvars.iv1004, 2
+  %indvars.iv.next1009 = add nuw nsw i64 %indvars.iv1008, 32
+  %exitcond1016.not = icmp eq i64 %polly.indvar_next203, 10
+  br i1 %exitcond1016.not, label %polly.exiting, label %polly.loop_header199
+
+polly.loop_header205:                             ; preds = %polly.loop_header205.preheader, %polly.loop_exit246
+  %indvars.iv1010 = phi i64 [ %102, %polly.loop_header205.preheader ], [ %indvars.iv.next1011, %polly.loop_exit246 ]
+  %indvars.iv1006 = phi i64 [ %103, %polly.loop_header205.preheader ], [ %indvars.iv.next1007, %polly.loop_exit246 ]
+  %polly.indvar208 = phi i64 [ %101, %polly.loop_header205.preheader ], [ %polly.indvar_next209, %polly.loop_exit246 ]
+  %smax = call i64 @llvm.smax.i64(i64 %indvars.iv1006, i64 0)
+  %106 = add i64 %smax, %indvars.iv1010
+  %107 = mul nsw i64 %polly.indvar208, 80
+  %108 = add nsw i64 %107, %104
+  %109 = add nsw i64 %108, -1
+  %.inv = icmp sgt i64 %108, 127
+  %110 = select i1 %.inv, i64 127, i64 %109
+  %polly.loop_guard221 = icmp sgt i64 %110, -1
+  %111 = icmp sgt i64 %108, 0
+  %112 = select i1 %111, i64 %108, i64 0
+  %113 = add nsw i64 %108, 79
+  %polly.loop_guard233.not = icmp sgt i64 %112, %113
+  br i1 %polly.loop_guard221, label %polly.loop_header211.us, label %polly.loop_header205.split
+
+polly.loop_header211.us:                          ; preds = %polly.loop_header205, %polly.loop_exit232.us
+  %polly.indvar214.us = phi i64 [ %polly.indvar_next215.us, %polly.loop_exit232.us ], [ 0, %polly.loop_header205 ]
+  %polly.access.mul.Packed_MemRef_call1.us = mul nuw nsw i64 %polly.indvar214.us, 1200
+  br label %polly.loop_header218.us
+
+polly.loop_header218.us:                          ; preds = %polly.loop_header211.us, %polly.loop_header218.us
+  %polly.indvar222.us = phi i64 [ %polly.indvar_next223.us, %polly.loop_header218.us ], [ 0, %polly.loop_header211.us ]
+  %114 = add nuw nsw i64 %polly.indvar222.us, %105
+  %polly.access.mul.call1226.us = mul nuw nsw i64 %114, 1000
+  %polly.access.add.call1227.us = add nuw nsw i64 %polly.access.mul.call1226.us, %polly.indvar214.us
+  %polly.access.call1228.us = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1227.us
+  %polly.access.call1228.load.us = load double, double* %polly.access.call1228.us, align 8, !alias.scope !71, !noalias !77
+  %polly.access.add.Packed_MemRef_call1.us = add nuw nsw i64 %polly.indvar222.us, %polly.access.mul.Packed_MemRef_call1.us
+  %polly.access.Packed_MemRef_call1.us = getelementptr double, double* %Packed_MemRef_call1, i64 %polly.access.add.Packed_MemRef_call1.us
+  store double %polly.access.call1228.load.us, double* %polly.access.Packed_MemRef_call1.us, align 8
+  %polly.indvar_next223.us = add nuw i64 %polly.indvar222.us, 1
+  %exitcond1002.not = icmp eq i64 %polly.indvar222.us, %110
+  br i1 %exitcond1002.not, label %polly.loop_exit220.loopexit.us, label %polly.loop_header218.us
+
+polly.loop_header230.us:                          ; preds = %polly.loop_exit220.loopexit.us, %polly.loop_header230.us
+  %polly.indvar234.us = phi i64 [ %polly.indvar_next235.us, %polly.loop_header230.us ], [ %112, %polly.loop_exit220.loopexit.us ]
+  %115 = add nuw nsw i64 %polly.indvar234.us, %105
+  %polly.access.mul.call1238.us = mul nsw i64 %115, 1000
+  %polly.access.add.call1239.us = add nuw nsw i64 %polly.access.mul.call1238.us, %polly.indvar214.us
+  %polly.access.call1240.us = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1239.us
+  %polly.access.call1240.load.us = load double, double* %polly.access.call1240.us, align 8, !alias.scope !71, !noalias !77
+  %polly.access.add.Packed_MemRef_call1242.us = add nuw nsw i64 %polly.indvar234.us, %polly.access.mul.Packed_MemRef_call1.us
+  %polly.access.Packed_MemRef_call1243.us = getelementptr double, double* %Packed_MemRef_call1, i64 %polly.access.add.Packed_MemRef_call1242.us
+  store double %polly.access.call1240.load.us, double* %polly.access.Packed_MemRef_call1243.us, align 8
+  %polly.indvar_next235.us = add nuw nsw i64 %polly.indvar234.us, 1
+  %polly.loop_cond236.not.not.us = icmp slt i64 %polly.indvar234.us, %113
+  br i1 %polly.loop_cond236.not.not.us, label %polly.loop_header230.us, label %polly.loop_exit232.us
+
+polly.loop_exit232.us:                            ; preds = %polly.loop_header230.us, %polly.loop_exit220.loopexit.us
+  %polly.indvar_next215.us = add nuw nsw i64 %polly.indvar214.us, 1
+  %exitcond1003.not = icmp eq i64 %polly.indvar_next215.us, 1000
+  br i1 %exitcond1003.not, label %polly.loop_header244.preheader, label %polly.loop_header211.us
+
+polly.loop_exit220.loopexit.us:                   ; preds = %polly.loop_header218.us
+  br i1 %polly.loop_guard233.not, label %polly.loop_exit232.us, label %polly.loop_header230.us
+
+polly.loop_header205.split:                       ; preds = %polly.loop_header205
+  br i1 %polly.loop_guard233.not, label %polly.loop_header244.preheader, label %polly.loop_header211
+
+polly.loop_exit246:                               ; preds = %polly.loop_exit253.loopexit.us, %polly.loop_header244.preheader
+  %polly.indvar_next209 = add nsw i64 %polly.indvar208, 1
+  %polly.loop_cond210 = icmp slt i64 %polly.indvar208, 14
+  %indvars.iv.next1007 = add i64 %indvars.iv1006, -80
+  %indvars.iv.next1011 = add i64 %indvars.iv1010, 80
+  br i1 %polly.loop_cond210, label %polly.loop_header205, label %polly.loop_exit207
+
+polly.loop_header211:                             ; preds = %polly.loop_header205.split, %polly.loop_exit232
+  %polly.indvar214 = phi i64 [ %polly.indvar_next215, %polly.loop_exit232 ], [ 0, %polly.loop_header205.split ]
+  %polly.access.mul.Packed_MemRef_call1241 = mul nuw nsw i64 %polly.indvar214, 1200
+  br label %polly.loop_header230
+
+polly.loop_exit232:                               ; preds = %polly.loop_header230
+  %polly.indvar_next215 = add nuw nsw i64 %polly.indvar214, 1
+  %exitcond.not = icmp eq i64 %polly.indvar_next215, 1000
+  br i1 %exitcond.not, label %polly.loop_header244.preheader, label %polly.loop_header211
+
+polly.loop_header244.preheader:                   ; preds = %polly.loop_exit232, %polly.loop_exit232.us, %polly.loop_header205.split
+  %116 = sub nsw i64 %105, %107
+  %117 = icmp sgt i64 %116, 0
+  %118 = select i1 %117, i64 %116, i64 0
+  %polly.loop_guard254 = icmp slt i64 %118, 80
+  br i1 %polly.loop_guard254, label %polly.loop_header244.us, label %polly.loop_exit246
+
+polly.loop_header244.us:                          ; preds = %polly.loop_header244.preheader, %polly.loop_exit253.loopexit.us
+  %polly.indvar247.us = phi i64 [ %polly.indvar_next248.us, %polly.loop_exit253.loopexit.us ], [ 0, %polly.loop_header244.preheader ]
+  %119 = shl nuw nsw i64 %polly.indvar247.us, 3
+  %scevgep270.us = getelementptr i8, i8* %call2, i64 %119
+  %polly.access.mul.Packed_MemRef_call1266.us = mul nuw nsw i64 %polly.indvar247.us, 1200
+  br label %polly.loop_header251.us
+
+polly.loop_header251.us:                          ; preds = %polly.loop_exit261.us, %polly.loop_header244.us
+  %indvars.iv1012 = phi i64 [ %indvars.iv.next1013, %polly.loop_exit261.us ], [ %106, %polly.loop_header244.us ]
+  %polly.indvar255.us = phi i64 [ %polly.indvar_next256.us, %polly.loop_exit261.us ], [ %118, %polly.loop_header244.us ]
+  %smin = call i64 @llvm.smin.i64(i64 %indvars.iv1012, i64 127)
+  %120 = add nsw i64 %polly.indvar255.us, %108
+  %polly.loop_guard262.us1097 = icmp sgt i64 %120, -1
+  br i1 %polly.loop_guard262.us1097, label %polly.loop_header259.preheader.us, label %polly.loop_exit261.us
+
+polly.loop_header259.us:                          ; preds = %polly.loop_header259.preheader.us, %polly.loop_header259.us
+  %polly.indvar263.us = phi i64 [ %polly.indvar_next264.us, %polly.loop_header259.us ], [ 0, %polly.loop_header259.preheader.us ]
+  %121 = add nuw nsw i64 %polly.indvar263.us, %105
+  %polly.access.add.Packed_MemRef_call1267.us = add nuw nsw i64 %polly.indvar263.us, %polly.access.mul.Packed_MemRef_call1266.us
+  %polly.access.Packed_MemRef_call1268.us = getelementptr double, double* %Packed_MemRef_call1, i64 %polly.access.add.Packed_MemRef_call1267.us
+  %_p_scalar_269.us = load double, double* %polly.access.Packed_MemRef_call1268.us, align 8
+  %p_mul27.i112.us = fmul fast double %_p_scalar_273.us, %_p_scalar_269.us
+  %122 = mul nuw nsw i64 %121, 8000
+  %scevgep275.us = getelementptr i8, i8* %scevgep270.us, i64 %122
+  %scevgep275276.us = bitcast i8* %scevgep275.us to double*
+  %_p_scalar_277.us = load double, double* %scevgep275276.us, align 8, !alias.scope !72, !noalias !78
+  %p_mul37.i114.us = fmul fast double %_p_scalar_281.us, %_p_scalar_277.us
+  %123 = shl i64 %121, 3
+  %124 = add i64 %123, %127
+  %scevgep282.us = getelementptr i8, i8* %call, i64 %124
+  %scevgep282283.us = bitcast i8* %scevgep282.us to double*
+  %_p_scalar_284.us = load double, double* %scevgep282283.us, align 8, !alias.scope !68, !noalias !70
+  %p_reass.add.i116.us = fadd fast double %p_mul37.i114.us, %p_mul27.i112.us
+  %p_reass.mul.i117.us = fmul fast double %p_reass.add.i116.us, 1.500000e+00
+  %p_add42.i118.us = fadd fast double %p_reass.mul.i117.us, %_p_scalar_284.us
+  store double %p_add42.i118.us, double* %scevgep282283.us, align 8, !alias.scope !68, !noalias !70
+  %polly.indvar_next264.us = add nuw nsw i64 %polly.indvar263.us, 1
+  %exitcond1014.not = icmp eq i64 %polly.indvar263.us, %smin
+  br i1 %exitcond1014.not, label %polly.loop_exit261.us, label %polly.loop_header259.us
+
+polly.loop_exit261.us:                            ; preds = %polly.loop_header259.us, %polly.loop_header251.us
+  %polly.indvar_next256.us = add nuw nsw i64 %polly.indvar255.us, 1
+  %polly.loop_cond257.us = icmp ult i64 %polly.indvar255.us, 79
+  %indvars.iv.next1013 = add i64 %indvars.iv1012, 1
+  br i1 %polly.loop_cond257.us, label %polly.loop_header251.us, label %polly.loop_exit253.loopexit.us
+
+polly.loop_header259.preheader.us:                ; preds = %polly.loop_header251.us
+  %125 = add nsw i64 %polly.indvar255.us, %107
+  %126 = mul i64 %125, 8000
+  %scevgep271.us = getelementptr i8, i8* %scevgep270.us, i64 %126
+  %scevgep271272.us = bitcast i8* %scevgep271.us to double*
+  %_p_scalar_273.us = load double, double* %scevgep271272.us, align 8, !alias.scope !72, !noalias !78
+  %polly.access.add.Packed_MemRef_call1279.us = add nsw i64 %120, %polly.access.mul.Packed_MemRef_call1266.us
+  %polly.access.Packed_MemRef_call1280.us = getelementptr double, double* %Packed_MemRef_call1, i64 %polly.access.add.Packed_MemRef_call1279.us
+  %_p_scalar_281.us = load double, double* %polly.access.Packed_MemRef_call1280.us, align 8
+  %127 = mul i64 %125, 9600
+  br label %polly.loop_header259.us
+
+polly.loop_exit253.loopexit.us:                   ; preds = %polly.loop_exit261.us
+  %polly.indvar_next248.us = add nuw nsw i64 %polly.indvar247.us, 1
+  %exitcond1015.not = icmp eq i64 %polly.indvar_next248.us, 1000
+  br i1 %exitcond1015.not, label %polly.loop_exit246, label %polly.loop_header244.us
+
+polly.loop_header230:                             ; preds = %polly.loop_header211, %polly.loop_header230
+  %polly.indvar234 = phi i64 [ %polly.indvar_next235, %polly.loop_header230 ], [ %112, %polly.loop_header211 ]
+  %128 = add nuw nsw i64 %polly.indvar234, %105
+  %polly.access.mul.call1238 = mul nsw i64 %128, 1000
+  %polly.access.add.call1239 = add nuw nsw i64 %polly.access.mul.call1238, %polly.indvar214
+  %polly.access.call1240 = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1239
+  %polly.access.call1240.load = load double, double* %polly.access.call1240, align 8, !alias.scope !71, !noalias !77
+  %polly.access.add.Packed_MemRef_call1242 = add nuw nsw i64 %polly.indvar234, %polly.access.mul.Packed_MemRef_call1241
+  %polly.access.Packed_MemRef_call1243 = getelementptr double, double* %Packed_MemRef_call1, i64 %polly.access.add.Packed_MemRef_call1242
+  store double %polly.access.call1240.load, double* %polly.access.Packed_MemRef_call1243, align 8
+  %polly.indvar_next235 = add nuw nsw i64 %polly.indvar234, 1
+  %polly.loop_cond236.not.not = icmp slt i64 %polly.indvar234, %113
+  br i1 %polly.loop_cond236.not.not, label %polly.loop_header230, label %polly.loop_exit232
+
+polly.start287:                                   ; preds = %kernel_syr2k.exit
+  %malloccall289 = tail call dereferenceable_or_null(9600000) i8* @malloc(i64 9600000) #6
+  br label %polly.loop_header373
+
+polly.exiting288:                                 ; preds = %polly.loop_exit399
+  tail call void @free(i8* %malloccall289)
+  br label %kernel_syr2k.exit90
+
+polly.loop_header373:                             ; preds = %polly.loop_exit381, %polly.start287
+  %indvar1213 = phi i64 [ %indvar.next1214, %polly.loop_exit381 ], [ 0, %polly.start287 ]
+  %polly.indvar376 = phi i64 [ %polly.indvar_next377, %polly.loop_exit381 ], [ 1, %polly.start287 ]
+  %129 = add i64 %indvar1213, 1
+  %130 = mul nuw nsw i64 %polly.indvar376, 9600
+  %scevgep385 = getelementptr i8, i8* %call, i64 %130
+  %min.iters.check1215 = icmp ult i64 %129, 4
+  br i1 %min.iters.check1215, label %polly.loop_header379.preheader, label %vector.ph1216
+
+vector.ph1216:                                    ; preds = %polly.loop_header373
+  %n.vec1218 = and i64 %129, -4
+  br label %vector.body1212
+
+vector.body1212:                                  ; preds = %vector.body1212, %vector.ph1216
+  %index1219 = phi i64 [ 0, %vector.ph1216 ], [ %index.next1220, %vector.body1212 ]
+  %131 = shl nuw nsw i64 %index1219, 3
+  %132 = getelementptr i8, i8* %scevgep385, i64 %131
+  %133 = bitcast i8* %132 to <4 x double>*
+  %wide.load1223 = load <4 x double>, <4 x double>* %133, align 8, !alias.scope !79, !noalias !81
+  %134 = fmul fast <4 x double> %wide.load1223, <double 1.200000e+00, double 1.200000e+00, double 1.200000e+00, double 1.200000e+00>
+  %135 = bitcast i8* %132 to <4 x double>*
+  store <4 x double> %134, <4 x double>* %135, align 8, !alias.scope !79, !noalias !81
+  %index.next1220 = add i64 %index1219, 4
+  %136 = icmp eq i64 %index.next1220, %n.vec1218
+  br i1 %136, label %middle.block1210, label %vector.body1212, !llvm.loop !85
+
+middle.block1210:                                 ; preds = %vector.body1212
+  %cmp.n1222 = icmp eq i64 %129, %n.vec1218
+  br i1 %cmp.n1222, label %polly.loop_exit381, label %polly.loop_header379.preheader
+
+polly.loop_header379.preheader:                   ; preds = %polly.loop_header373, %middle.block1210
+  %polly.indvar382.ph = phi i64 [ 0, %polly.loop_header373 ], [ %n.vec1218, %middle.block1210 ]
+  br label %polly.loop_header379
+
+polly.loop_exit381:                               ; preds = %polly.loop_header379, %middle.block1210
+  %polly.indvar_next377 = add nuw nsw i64 %polly.indvar376, 1
+  %exitcond1040.not = icmp eq i64 %polly.indvar_next377, 1200
+  %indvar.next1214 = add i64 %indvar1213, 1
+  br i1 %exitcond1040.not, label %polly.loop_header389.preheader, label %polly.loop_header373
+
+polly.loop_header389.preheader:                   ; preds = %polly.loop_exit381
+  %Packed_MemRef_call1290 = bitcast i8* %malloccall289 to double*
+  br label %polly.loop_header389
+
+polly.loop_header379:                             ; preds = %polly.loop_header379.preheader, %polly.loop_header379
+  %polly.indvar382 = phi i64 [ %polly.indvar_next383, %polly.loop_header379 ], [ %polly.indvar382.ph, %polly.loop_header379.preheader ]
+  %137 = shl nuw nsw i64 %polly.indvar382, 3
+  %scevgep386 = getelementptr i8, i8* %scevgep385, i64 %137
+  %scevgep386387 = bitcast i8* %scevgep386 to double*
+  %_p_scalar_388 = load double, double* %scevgep386387, align 8, !alias.scope !79, !noalias !81
+  %p_mul.i57 = fmul fast double %_p_scalar_388, 1.200000e+00
+  store double %p_mul.i57, double* %scevgep386387, align 8, !alias.scope !79, !noalias !81
+  %polly.indvar_next383 = add nuw nsw i64 %polly.indvar382, 1
+  %exitcond1039.not = icmp eq i64 %polly.indvar_next383, %polly.indvar376
+  br i1 %exitcond1039.not, label %polly.loop_exit381, label %polly.loop_header379, !llvm.loop !86
+
+polly.loop_header389:                             ; preds = %polly.loop_header389.preheader, %polly.loop_exit399
+  %indvars.iv1029 = phi i64 [ 0, %polly.loop_header389.preheader ], [ %indvars.iv.next1030, %polly.loop_exit399 ]
+  %indvars.iv1024 = phi i64 [ 4, %polly.loop_header389.preheader ], [ %indvars.iv.next1025, %polly.loop_exit399 ]
+  %indvars.iv1022 = phi i64 [ 0, %polly.loop_header389.preheader ], [ %indvars.iv.next1023, %polly.loop_exit399 ]
+  %polly.indvar392 = phi i64 [ 0, %polly.loop_header389.preheader ], [ %polly.indvar_next393, %polly.loop_exit399 ]
+  %138 = udiv i64 %indvars.iv1024, 5
+  %139 = mul nuw nsw i64 %138, 80
+  %140 = shl nuw nsw i64 %polly.indvar392, 1
+  %141 = trunc i64 %140 to i8
+  %pexp.p_div_q395.lhs.trunc = add i8 %141, 4
+  %pexp.p_div_q395880 = udiv i8 %pexp.p_div_q395.lhs.trunc, 5
+  %pexp.p_div_q395.zext = zext i8 %pexp.p_div_q395880 to i64
+  %142 = sub nsw i64 %140, %pexp.p_div_q395.zext
+  %polly.loop_guard400 = icmp slt i64 %142, 15
+  br i1 %polly.loop_guard400, label %polly.loop_header397.preheader, label %polly.loop_exit399
+
+polly.loop_header397.preheader:                   ; preds = %polly.loop_header389
+  %143 = sub nsw i64 %indvars.iv1029, %139
+  %144 = add i64 %indvars.iv1022, %139
+  %145 = mul nsw i64 %polly.indvar392, -128
+  %146 = shl nsw i64 %polly.indvar392, 7
+  br label %polly.loop_header397
+
+polly.loop_exit399:                               ; preds = %polly.loop_exit439, %polly.loop_header389
+  %polly.indvar_next393 = add nuw nsw i64 %polly.indvar392, 1
+  %indvars.iv.next1023 = add nsw i64 %indvars.iv1022, -32
+  %indvars.iv.next1025 = add nuw nsw i64 %indvars.iv1024, 2
+  %indvars.iv.next1030 = add nuw nsw i64 %indvars.iv1029, 32
+  %exitcond1038.not = icmp eq i64 %polly.indvar_next393, 10
+  br i1 %exitcond1038.not, label %polly.exiting288, label %polly.loop_header389
+
+polly.loop_header397:                             ; preds = %polly.loop_header397.preheader, %polly.loop_exit439
+  %indvars.iv1031 = phi i64 [ %143, %polly.loop_header397.preheader ], [ %indvars.iv.next1032, %polly.loop_exit439 ]
+  %indvars.iv1026 = phi i64 [ %144, %polly.loop_header397.preheader ], [ %indvars.iv.next1027, %polly.loop_exit439 ]
+  %polly.indvar401 = phi i64 [ %142, %polly.loop_header397.preheader ], [ %polly.indvar_next402, %polly.loop_exit439 ]
+  %smax1028 = call i64 @llvm.smax.i64(i64 %indvars.iv1026, i64 0)
+  %147 = add i64 %smax1028, %indvars.iv1031
+  %148 = mul nsw i64 %polly.indvar401, 80
+  %149 = add nsw i64 %148, %145
+  %150 = add nsw i64 %149, -1
+  %.inv877 = icmp sgt i64 %149, 127
+  %151 = select i1 %.inv877, i64 127, i64 %150
+  %polly.loop_guard414 = icmp sgt i64 %151, -1
+  %152 = icmp sgt i64 %149, 0
+  %153 = select i1 %152, i64 %149, i64 0
+  %154 = add nsw i64 %149, 79
+  %polly.loop_guard426.not = icmp sgt i64 %153, %154
+  br i1 %polly.loop_guard414, label %polly.loop_header404.us, label %polly.loop_header397.split
+
+polly.loop_header404.us:                          ; preds = %polly.loop_header397, %polly.loop_exit425.us
+  %polly.indvar407.us = phi i64 [ %polly.indvar_next408.us, %polly.loop_exit425.us ], [ 0, %polly.loop_header397 ]
+  %polly.access.mul.Packed_MemRef_call1290.us = mul nuw nsw i64 %polly.indvar407.us, 1200
+  br label %polly.loop_header411.us
+
+polly.loop_header411.us:                          ; preds = %polly.loop_header404.us, %polly.loop_header411.us
+  %polly.indvar415.us = phi i64 [ %polly.indvar_next416.us, %polly.loop_header411.us ], [ 0, %polly.loop_header404.us ]
+  %155 = add nuw nsw i64 %polly.indvar415.us, %146
+  %polly.access.mul.call1419.us = mul nuw nsw i64 %155, 1000
+  %polly.access.add.call1420.us = add nuw nsw i64 %polly.access.mul.call1419.us, %polly.indvar407.us
+  %polly.access.call1421.us = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1420.us
+  %polly.access.call1421.load.us = load double, double* %polly.access.call1421.us, align 8, !alias.scope !82, !noalias !87
+  %polly.access.add.Packed_MemRef_call1290.us = add nuw nsw i64 %polly.indvar415.us, %polly.access.mul.Packed_MemRef_call1290.us
+  %polly.access.Packed_MemRef_call1290.us = getelementptr double, double* %Packed_MemRef_call1290, i64 %polly.access.add.Packed_MemRef_call1290.us
+  store double %polly.access.call1421.load.us, double* %polly.access.Packed_MemRef_call1290.us, align 8
+  %polly.indvar_next416.us = add nuw i64 %polly.indvar415.us, 1
+  %exitcond1020.not = icmp eq i64 %polly.indvar415.us, %151
+  br i1 %exitcond1020.not, label %polly.loop_exit413.loopexit.us, label %polly.loop_header411.us
+
+polly.loop_header423.us:                          ; preds = %polly.loop_exit413.loopexit.us, %polly.loop_header423.us
+  %polly.indvar427.us = phi i64 [ %polly.indvar_next428.us, %polly.loop_header423.us ], [ %153, %polly.loop_exit413.loopexit.us ]
+  %156 = add nuw nsw i64 %polly.indvar427.us, %146
+  %polly.access.mul.call1431.us = mul nsw i64 %156, 1000
+  %polly.access.add.call1432.us = add nuw nsw i64 %polly.access.mul.call1431.us, %polly.indvar407.us
+  %polly.access.call1433.us = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1432.us
+  %polly.access.call1433.load.us = load double, double* %polly.access.call1433.us, align 8, !alias.scope !82, !noalias !87
+  %polly.access.add.Packed_MemRef_call1290435.us = add nuw nsw i64 %polly.indvar427.us, %polly.access.mul.Packed_MemRef_call1290.us
+  %polly.access.Packed_MemRef_call1290436.us = getelementptr double, double* %Packed_MemRef_call1290, i64 %polly.access.add.Packed_MemRef_call1290435.us
+  store double %polly.access.call1433.load.us, double* %polly.access.Packed_MemRef_call1290436.us, align 8
+  %polly.indvar_next428.us = add nuw nsw i64 %polly.indvar427.us, 1
+  %polly.loop_cond429.not.not.us = icmp slt i64 %polly.indvar427.us, %154
+  br i1 %polly.loop_cond429.not.not.us, label %polly.loop_header423.us, label %polly.loop_exit425.us
+
+polly.loop_exit425.us:                            ; preds = %polly.loop_header423.us, %polly.loop_exit413.loopexit.us
+  %polly.indvar_next408.us = add nuw nsw i64 %polly.indvar407.us, 1
+  %exitcond1021.not = icmp eq i64 %polly.indvar_next408.us, 1000
+  br i1 %exitcond1021.not, label %polly.loop_header437.preheader, label %polly.loop_header404.us
+
+polly.loop_exit413.loopexit.us:                   ; preds = %polly.loop_header411.us
+  br i1 %polly.loop_guard426.not, label %polly.loop_exit425.us, label %polly.loop_header423.us
+
+polly.loop_header397.split:                       ; preds = %polly.loop_header397
+  br i1 %polly.loop_guard426.not, label %polly.loop_header437.preheader, label %polly.loop_header404
+
+polly.loop_exit439:                               ; preds = %polly.loop_exit446.loopexit.us, %polly.loop_header437.preheader
+  %polly.indvar_next402 = add nsw i64 %polly.indvar401, 1
+  %polly.loop_cond403 = icmp slt i64 %polly.indvar401, 14
+  %indvars.iv.next1027 = add i64 %indvars.iv1026, -80
+  %indvars.iv.next1032 = add i64 %indvars.iv1031, 80
+  br i1 %polly.loop_cond403, label %polly.loop_header397, label %polly.loop_exit399
+
+polly.loop_header404:                             ; preds = %polly.loop_header397.split, %polly.loop_exit425
+  %polly.indvar407 = phi i64 [ %polly.indvar_next408, %polly.loop_exit425 ], [ 0, %polly.loop_header397.split ]
+  %polly.access.mul.Packed_MemRef_call1290434 = mul nuw nsw i64 %polly.indvar407, 1200
+  br label %polly.loop_header423
+
+polly.loop_exit425:                               ; preds = %polly.loop_header423
+  %polly.indvar_next408 = add nuw nsw i64 %polly.indvar407, 1
+  %exitcond1019.not = icmp eq i64 %polly.indvar_next408, 1000
+  br i1 %exitcond1019.not, label %polly.loop_header437.preheader, label %polly.loop_header404
+
+polly.loop_header437.preheader:                   ; preds = %polly.loop_exit425, %polly.loop_exit425.us, %polly.loop_header397.split
+  %157 = sub nsw i64 %146, %148
+  %158 = icmp sgt i64 %157, 0
+  %159 = select i1 %158, i64 %157, i64 0
+  %polly.loop_guard447 = icmp slt i64 %159, 80
+  br i1 %polly.loop_guard447, label %polly.loop_header437.us, label %polly.loop_exit439
+
+polly.loop_header437.us:                          ; preds = %polly.loop_header437.preheader, %polly.loop_exit446.loopexit.us
+  %polly.indvar440.us = phi i64 [ %polly.indvar_next441.us, %polly.loop_exit446.loopexit.us ], [ 0, %polly.loop_header437.preheader ]
+  %160 = shl nuw nsw i64 %polly.indvar440.us, 3
+  %scevgep463.us = getelementptr i8, i8* %call2, i64 %160
+  %polly.access.mul.Packed_MemRef_call1290459.us = mul nuw nsw i64 %polly.indvar440.us, 1200
+  br label %polly.loop_header444.us
+
+polly.loop_header444.us:                          ; preds = %polly.loop_exit454.us, %polly.loop_header437.us
+  %indvars.iv1033 = phi i64 [ %indvars.iv.next1034, %polly.loop_exit454.us ], [ %147, %polly.loop_header437.us ]
+  %polly.indvar448.us = phi i64 [ %polly.indvar_next449.us, %polly.loop_exit454.us ], [ %159, %polly.loop_header437.us ]
+  %smin1035 = call i64 @llvm.smin.i64(i64 %indvars.iv1033, i64 127)
+  %161 = add nsw i64 %polly.indvar448.us, %149
+  %polly.loop_guard455.us1098 = icmp sgt i64 %161, -1
+  br i1 %polly.loop_guard455.us1098, label %polly.loop_header452.preheader.us, label %polly.loop_exit454.us
+
+polly.loop_header452.us:                          ; preds = %polly.loop_header452.preheader.us, %polly.loop_header452.us
+  %polly.indvar456.us = phi i64 [ %polly.indvar_next457.us, %polly.loop_header452.us ], [ 0, %polly.loop_header452.preheader.us ]
+  %162 = add nuw nsw i64 %polly.indvar456.us, %146
+  %polly.access.add.Packed_MemRef_call1290460.us = add nuw nsw i64 %polly.indvar456.us, %polly.access.mul.Packed_MemRef_call1290459.us
+  %polly.access.Packed_MemRef_call1290461.us = getelementptr double, double* %Packed_MemRef_call1290, i64 %polly.access.add.Packed_MemRef_call1290460.us
+  %_p_scalar_462.us = load double, double* %polly.access.Packed_MemRef_call1290461.us, align 8
+  %p_mul27.i73.us = fmul fast double %_p_scalar_466.us, %_p_scalar_462.us
+  %163 = mul nuw nsw i64 %162, 8000
+  %scevgep468.us = getelementptr i8, i8* %scevgep463.us, i64 %163
+  %scevgep468469.us = bitcast i8* %scevgep468.us to double*
+  %_p_scalar_470.us = load double, double* %scevgep468469.us, align 8, !alias.scope !83, !noalias !88
+  %p_mul37.i75.us = fmul fast double %_p_scalar_474.us, %_p_scalar_470.us
+  %164 = shl i64 %162, 3
+  %165 = add i64 %164, %168
+  %scevgep475.us = getelementptr i8, i8* %call, i64 %165
+  %scevgep475476.us = bitcast i8* %scevgep475.us to double*
+  %_p_scalar_477.us = load double, double* %scevgep475476.us, align 8, !alias.scope !79, !noalias !81
+  %p_reass.add.i77.us = fadd fast double %p_mul37.i75.us, %p_mul27.i73.us
+  %p_reass.mul.i78.us = fmul fast double %p_reass.add.i77.us, 1.500000e+00
+  %p_add42.i79.us = fadd fast double %p_reass.mul.i78.us, %_p_scalar_477.us
+  store double %p_add42.i79.us, double* %scevgep475476.us, align 8, !alias.scope !79, !noalias !81
+  %polly.indvar_next457.us = add nuw nsw i64 %polly.indvar456.us, 1
+  %exitcond1036.not = icmp eq i64 %polly.indvar456.us, %smin1035
+  br i1 %exitcond1036.not, label %polly.loop_exit454.us, label %polly.loop_header452.us
+
+polly.loop_exit454.us:                            ; preds = %polly.loop_header452.us, %polly.loop_header444.us
+  %polly.indvar_next449.us = add nuw nsw i64 %polly.indvar448.us, 1
+  %polly.loop_cond450.us = icmp ult i64 %polly.indvar448.us, 79
+  %indvars.iv.next1034 = add i64 %indvars.iv1033, 1
+  br i1 %polly.loop_cond450.us, label %polly.loop_header444.us, label %polly.loop_exit446.loopexit.us
+
+polly.loop_header452.preheader.us:                ; preds = %polly.loop_header444.us
+  %166 = add nsw i64 %polly.indvar448.us, %148
+  %167 = mul i64 %166, 8000
+  %scevgep464.us = getelementptr i8, i8* %scevgep463.us, i64 %167
+  %scevgep464465.us = bitcast i8* %scevgep464.us to double*
+  %_p_scalar_466.us = load double, double* %scevgep464465.us, align 8, !alias.scope !83, !noalias !88
+  %polly.access.add.Packed_MemRef_call1290472.us = add nsw i64 %161, %polly.access.mul.Packed_MemRef_call1290459.us
+  %polly.access.Packed_MemRef_call1290473.us = getelementptr double, double* %Packed_MemRef_call1290, i64 %polly.access.add.Packed_MemRef_call1290472.us
+  %_p_scalar_474.us = load double, double* %polly.access.Packed_MemRef_call1290473.us, align 8
+  %168 = mul i64 %166, 9600
+  br label %polly.loop_header452.us
+
+polly.loop_exit446.loopexit.us:                   ; preds = %polly.loop_exit454.us
+  %polly.indvar_next441.us = add nuw nsw i64 %polly.indvar440.us, 1
+  %exitcond1037.not = icmp eq i64 %polly.indvar_next441.us, 1000
+  br i1 %exitcond1037.not, label %polly.loop_exit439, label %polly.loop_header437.us
+
+polly.loop_header423:                             ; preds = %polly.loop_header404, %polly.loop_header423
+  %polly.indvar427 = phi i64 [ %polly.indvar_next428, %polly.loop_header423 ], [ %153, %polly.loop_header404 ]
+  %169 = add nuw nsw i64 %polly.indvar427, %146
+  %polly.access.mul.call1431 = mul nsw i64 %169, 1000
+  %polly.access.add.call1432 = add nuw nsw i64 %polly.access.mul.call1431, %polly.indvar407
+  %polly.access.call1433 = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1432
+  %polly.access.call1433.load = load double, double* %polly.access.call1433, align 8, !alias.scope !82, !noalias !87
+  %polly.access.add.Packed_MemRef_call1290435 = add nuw nsw i64 %polly.indvar427, %polly.access.mul.Packed_MemRef_call1290434
+  %polly.access.Packed_MemRef_call1290436 = getelementptr double, double* %Packed_MemRef_call1290, i64 %polly.access.add.Packed_MemRef_call1290435
+  store double %polly.access.call1433.load, double* %polly.access.Packed_MemRef_call1290436, align 8
+  %polly.indvar_next428 = add nuw nsw i64 %polly.indvar427, 1
+  %polly.loop_cond429.not.not = icmp slt i64 %polly.indvar427, %154
+  br i1 %polly.loop_cond429.not.not, label %polly.loop_header423, label %polly.loop_exit425
+
+polly.start480:                                   ; preds = %init_array.exit
+  %malloccall482 = tail call dereferenceable_or_null(9600000) i8* @malloc(i64 9600000) #6
+  br label %polly.loop_header566
+
+polly.exiting481:                                 ; preds = %polly.loop_exit592
+  tail call void @free(i8* %malloccall482)
+  br label %kernel_syr2k.exit
+
+polly.loop_header566:                             ; preds = %polly.loop_exit574, %polly.start480
+  %indvar = phi i64 [ %indvar.next, %polly.loop_exit574 ], [ 0, %polly.start480 ]
+  %polly.indvar569 = phi i64 [ %polly.indvar_next570, %polly.loop_exit574 ], [ 1, %polly.start480 ]
+  %170 = add i64 %indvar, 1
+  %171 = mul nuw nsw i64 %polly.indvar569, 9600
+  %scevgep578 = getelementptr i8, i8* %call, i64 %171
+  %min.iters.check1189 = icmp ult i64 %170, 4
+  br i1 %min.iters.check1189, label %polly.loop_header572.preheader, label %vector.ph1190
+
+vector.ph1190:                                    ; preds = %polly.loop_header566
+  %n.vec1192 = and i64 %170, -4
+  br label %vector.body1188
+
+vector.body1188:                                  ; preds = %vector.body1188, %vector.ph1190
+  %index1193 = phi i64 [ 0, %vector.ph1190 ], [ %index.next1194, %vector.body1188 ]
+  %172 = shl nuw nsw i64 %index1193, 3
+  %173 = getelementptr i8, i8* %scevgep578, i64 %172
+  %174 = bitcast i8* %173 to <4 x double>*
+  %wide.load1197 = load <4 x double>, <4 x double>* %174, align 8, !alias.scope !89, !noalias !91
+  %175 = fmul fast <4 x double> %wide.load1197, <double 1.200000e+00, double 1.200000e+00, double 1.200000e+00, double 1.200000e+00>
+  %176 = bitcast i8* %173 to <4 x double>*
+  store <4 x double> %175, <4 x double>* %176, align 8, !alias.scope !89, !noalias !91
+  %index.next1194 = add i64 %index1193, 4
+  %177 = icmp eq i64 %index.next1194, %n.vec1192
+  br i1 %177, label %middle.block1186, label %vector.body1188, !llvm.loop !95
+
+middle.block1186:                                 ; preds = %vector.body1188
+  %cmp.n1196 = icmp eq i64 %170, %n.vec1192
+  br i1 %cmp.n1196, label %polly.loop_exit574, label %polly.loop_header572.preheader
+
+polly.loop_header572.preheader:                   ; preds = %polly.loop_header566, %middle.block1186
+  %polly.indvar575.ph = phi i64 [ 0, %polly.loop_header566 ], [ %n.vec1192, %middle.block1186 ]
+  br label %polly.loop_header572
+
+polly.loop_exit574:                               ; preds = %polly.loop_header572, %middle.block1186
+  %polly.indvar_next570 = add nuw nsw i64 %polly.indvar569, 1
+  %exitcond1062.not = icmp eq i64 %polly.indvar_next570, 1200
+  %indvar.next = add i64 %indvar, 1
+  br i1 %exitcond1062.not, label %polly.loop_header582.preheader, label %polly.loop_header566
+
+polly.loop_header582.preheader:                   ; preds = %polly.loop_exit574
+  %Packed_MemRef_call1483 = bitcast i8* %malloccall482 to double*
+  br label %polly.loop_header582
+
+polly.loop_header572:                             ; preds = %polly.loop_header572.preheader, %polly.loop_header572
+  %polly.indvar575 = phi i64 [ %polly.indvar_next576, %polly.loop_header572 ], [ %polly.indvar575.ph, %polly.loop_header572.preheader ]
+  %178 = shl nuw nsw i64 %polly.indvar575, 3
+  %scevgep579 = getelementptr i8, i8* %scevgep578, i64 %178
+  %scevgep579580 = bitcast i8* %scevgep579 to double*
+  %_p_scalar_581 = load double, double* %scevgep579580, align 8, !alias.scope !89, !noalias !91
+  %p_mul.i = fmul fast double %_p_scalar_581, 1.200000e+00
+  store double %p_mul.i, double* %scevgep579580, align 8, !alias.scope !89, !noalias !91
+  %polly.indvar_next576 = add nuw nsw i64 %polly.indvar575, 1
+  %exitcond1061.not = icmp eq i64 %polly.indvar_next576, %polly.indvar569
+  br i1 %exitcond1061.not, label %polly.loop_exit574, label %polly.loop_header572, !llvm.loop !96
+
+polly.loop_header582:                             ; preds = %polly.loop_header582.preheader, %polly.loop_exit592
+  %indvars.iv1051 = phi i64 [ 0, %polly.loop_header582.preheader ], [ %indvars.iv.next1052, %polly.loop_exit592 ]
+  %indvars.iv1046 = phi i64 [ 4, %polly.loop_header582.preheader ], [ %indvars.iv.next1047, %polly.loop_exit592 ]
+  %indvars.iv1044 = phi i64 [ 0, %polly.loop_header582.preheader ], [ %indvars.iv.next1045, %polly.loop_exit592 ]
+  %polly.indvar585 = phi i64 [ 0, %polly.loop_header582.preheader ], [ %polly.indvar_next586, %polly.loop_exit592 ]
+  %179 = udiv i64 %indvars.iv1046, 5
+  %180 = mul nuw nsw i64 %179, 80
+  %181 = shl nuw nsw i64 %polly.indvar585, 1
+  %182 = trunc i64 %181 to i8
+  %pexp.p_div_q588.lhs.trunc = add i8 %182, 4
+  %pexp.p_div_q588879 = udiv i8 %pexp.p_div_q588.lhs.trunc, 5
+  %pexp.p_div_q588.zext = zext i8 %pexp.p_div_q588879 to i64
+  %183 = sub nsw i64 %181, %pexp.p_div_q588.zext
+  %polly.loop_guard593 = icmp slt i64 %183, 15
+  br i1 %polly.loop_guard593, label %polly.loop_header590.preheader, label %polly.loop_exit592
+
+polly.loop_header590.preheader:                   ; preds = %polly.loop_header582
+  %184 = sub nsw i64 %indvars.iv1051, %180
+  %185 = add i64 %indvars.iv1044, %180
+  %186 = mul nsw i64 %polly.indvar585, -128
+  %187 = shl nsw i64 %polly.indvar585, 7
+  br label %polly.loop_header590
+
+polly.loop_exit592:                               ; preds = %polly.loop_exit632, %polly.loop_header582
+  %polly.indvar_next586 = add nuw nsw i64 %polly.indvar585, 1
+  %indvars.iv.next1045 = add nsw i64 %indvars.iv1044, -32
+  %indvars.iv.next1047 = add nuw nsw i64 %indvars.iv1046, 2
+  %indvars.iv.next1052 = add nuw nsw i64 %indvars.iv1051, 32
+  %exitcond1060.not = icmp eq i64 %polly.indvar_next586, 10
+  br i1 %exitcond1060.not, label %polly.exiting481, label %polly.loop_header582
+
+polly.loop_header590:                             ; preds = %polly.loop_header590.preheader, %polly.loop_exit632
+  %indvars.iv1053 = phi i64 [ %184, %polly.loop_header590.preheader ], [ %indvars.iv.next1054, %polly.loop_exit632 ]
+  %indvars.iv1048 = phi i64 [ %185, %polly.loop_header590.preheader ], [ %indvars.iv.next1049, %polly.loop_exit632 ]
+  %polly.indvar594 = phi i64 [ %183, %polly.loop_header590.preheader ], [ %polly.indvar_next595, %polly.loop_exit632 ]
+  %smax1050 = call i64 @llvm.smax.i64(i64 %indvars.iv1048, i64 0)
+  %188 = add i64 %smax1050, %indvars.iv1053
+  %189 = mul nsw i64 %polly.indvar594, 80
+  %190 = add nsw i64 %189, %186
+  %191 = add nsw i64 %190, -1
+  %.inv878 = icmp sgt i64 %190, 127
+  %192 = select i1 %.inv878, i64 127, i64 %191
+  %polly.loop_guard607 = icmp sgt i64 %192, -1
+  %193 = icmp sgt i64 %190, 0
+  %194 = select i1 %193, i64 %190, i64 0
+  %195 = add nsw i64 %190, 79
+  %polly.loop_guard619.not = icmp sgt i64 %194, %195
+  br i1 %polly.loop_guard607, label %polly.loop_header597.us, label %polly.loop_header590.split
+
+polly.loop_header597.us:                          ; preds = %polly.loop_header590, %polly.loop_exit618.us
+  %polly.indvar600.us = phi i64 [ %polly.indvar_next601.us, %polly.loop_exit618.us ], [ 0, %polly.loop_header590 ]
+  %polly.access.mul.Packed_MemRef_call1483.us = mul nuw nsw i64 %polly.indvar600.us, 1200
+  br label %polly.loop_header604.us
+
+polly.loop_header604.us:                          ; preds = %polly.loop_header597.us, %polly.loop_header604.us
+  %polly.indvar608.us = phi i64 [ %polly.indvar_next609.us, %polly.loop_header604.us ], [ 0, %polly.loop_header597.us ]
+  %196 = add nuw nsw i64 %polly.indvar608.us, %187
+  %polly.access.mul.call1612.us = mul nuw nsw i64 %196, 1000
+  %polly.access.add.call1613.us = add nuw nsw i64 %polly.access.mul.call1612.us, %polly.indvar600.us
+  %polly.access.call1614.us = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1613.us
+  %polly.access.call1614.load.us = load double, double* %polly.access.call1614.us, align 8, !alias.scope !92, !noalias !97
+  %polly.access.add.Packed_MemRef_call1483.us = add nuw nsw i64 %polly.indvar608.us, %polly.access.mul.Packed_MemRef_call1483.us
+  %polly.access.Packed_MemRef_call1483.us = getelementptr double, double* %Packed_MemRef_call1483, i64 %polly.access.add.Packed_MemRef_call1483.us
+  store double %polly.access.call1614.load.us, double* %polly.access.Packed_MemRef_call1483.us, align 8
+  %polly.indvar_next609.us = add nuw i64 %polly.indvar608.us, 1
+  %exitcond1042.not = icmp eq i64 %polly.indvar608.us, %192
+  br i1 %exitcond1042.not, label %polly.loop_exit606.loopexit.us, label %polly.loop_header604.us
+
+polly.loop_header616.us:                          ; preds = %polly.loop_exit606.loopexit.us, %polly.loop_header616.us
+  %polly.indvar620.us = phi i64 [ %polly.indvar_next621.us, %polly.loop_header616.us ], [ %194, %polly.loop_exit606.loopexit.us ]
+  %197 = add nuw nsw i64 %polly.indvar620.us, %187
+  %polly.access.mul.call1624.us = mul nsw i64 %197, 1000
+  %polly.access.add.call1625.us = add nuw nsw i64 %polly.access.mul.call1624.us, %polly.indvar600.us
+  %polly.access.call1626.us = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1625.us
+  %polly.access.call1626.load.us = load double, double* %polly.access.call1626.us, align 8, !alias.scope !92, !noalias !97
+  %polly.access.add.Packed_MemRef_call1483628.us = add nuw nsw i64 %polly.indvar620.us, %polly.access.mul.Packed_MemRef_call1483.us
+  %polly.access.Packed_MemRef_call1483629.us = getelementptr double, double* %Packed_MemRef_call1483, i64 %polly.access.add.Packed_MemRef_call1483628.us
+  store double %polly.access.call1626.load.us, double* %polly.access.Packed_MemRef_call1483629.us, align 8
+  %polly.indvar_next621.us = add nuw nsw i64 %polly.indvar620.us, 1
+  %polly.loop_cond622.not.not.us = icmp slt i64 %polly.indvar620.us, %195
+  br i1 %polly.loop_cond622.not.not.us, label %polly.loop_header616.us, label %polly.loop_exit618.us
+
+polly.loop_exit618.us:                            ; preds = %polly.loop_header616.us, %polly.loop_exit606.loopexit.us
+  %polly.indvar_next601.us = add nuw nsw i64 %polly.indvar600.us, 1
+  %exitcond1043.not = icmp eq i64 %polly.indvar_next601.us, 1000
+  br i1 %exitcond1043.not, label %polly.loop_header630.preheader, label %polly.loop_header597.us
+
+polly.loop_exit606.loopexit.us:                   ; preds = %polly.loop_header604.us
+  br i1 %polly.loop_guard619.not, label %polly.loop_exit618.us, label %polly.loop_header616.us
+
+polly.loop_header590.split:                       ; preds = %polly.loop_header590
+  br i1 %polly.loop_guard619.not, label %polly.loop_header630.preheader, label %polly.loop_header597
+
+polly.loop_exit632:                               ; preds = %polly.loop_exit639.loopexit.us, %polly.loop_header630.preheader
+  %polly.indvar_next595 = add nsw i64 %polly.indvar594, 1
+  %polly.loop_cond596 = icmp slt i64 %polly.indvar594, 14
+  %indvars.iv.next1049 = add i64 %indvars.iv1048, -80
+  %indvars.iv.next1054 = add i64 %indvars.iv1053, 80
+  br i1 %polly.loop_cond596, label %polly.loop_header590, label %polly.loop_exit592
+
+polly.loop_header597:                             ; preds = %polly.loop_header590.split, %polly.loop_exit618
+  %polly.indvar600 = phi i64 [ %polly.indvar_next601, %polly.loop_exit618 ], [ 0, %polly.loop_header590.split ]
+  %polly.access.mul.Packed_MemRef_call1483627 = mul nuw nsw i64 %polly.indvar600, 1200
+  br label %polly.loop_header616
+
+polly.loop_exit618:                               ; preds = %polly.loop_header616
+  %polly.indvar_next601 = add nuw nsw i64 %polly.indvar600, 1
+  %exitcond1041.not = icmp eq i64 %polly.indvar_next601, 1000
+  br i1 %exitcond1041.not, label %polly.loop_header630.preheader, label %polly.loop_header597
+
+polly.loop_header630.preheader:                   ; preds = %polly.loop_exit618, %polly.loop_exit618.us, %polly.loop_header590.split
+  %198 = sub nsw i64 %187, %189
+  %199 = icmp sgt i64 %198, 0
+  %200 = select i1 %199, i64 %198, i64 0
+  %polly.loop_guard640 = icmp slt i64 %200, 80
+  br i1 %polly.loop_guard640, label %polly.loop_header630.us, label %polly.loop_exit632
+
+polly.loop_header630.us:                          ; preds = %polly.loop_header630.preheader, %polly.loop_exit639.loopexit.us
+  %polly.indvar633.us = phi i64 [ %polly.indvar_next634.us, %polly.loop_exit639.loopexit.us ], [ 0, %polly.loop_header630.preheader ]
+  %201 = shl nuw nsw i64 %polly.indvar633.us, 3
+  %scevgep656.us = getelementptr i8, i8* %call2, i64 %201
+  %polly.access.mul.Packed_MemRef_call1483652.us = mul nuw nsw i64 %polly.indvar633.us, 1200
+  br label %polly.loop_header637.us
+
+polly.loop_header637.us:                          ; preds = %polly.loop_exit647.us, %polly.loop_header630.us
+  %indvars.iv1055 = phi i64 [ %indvars.iv.next1056, %polly.loop_exit647.us ], [ %188, %polly.loop_header630.us ]
+  %polly.indvar641.us = phi i64 [ %polly.indvar_next642.us, %polly.loop_exit647.us ], [ %200, %polly.loop_header630.us ]
+  %smin1057 = call i64 @llvm.smin.i64(i64 %indvars.iv1055, i64 127)
+  %202 = add nsw i64 %polly.indvar641.us, %190
+  %polly.loop_guard648.us1099 = icmp sgt i64 %202, -1
+  br i1 %polly.loop_guard648.us1099, label %polly.loop_header645.preheader.us, label %polly.loop_exit647.us
+
+polly.loop_header645.us:                          ; preds = %polly.loop_header645.preheader.us, %polly.loop_header645.us
+  %polly.indvar649.us = phi i64 [ %polly.indvar_next650.us, %polly.loop_header645.us ], [ 0, %polly.loop_header645.preheader.us ]
+  %203 = add nuw nsw i64 %polly.indvar649.us, %187
+  %polly.access.add.Packed_MemRef_call1483653.us = add nuw nsw i64 %polly.indvar649.us, %polly.access.mul.Packed_MemRef_call1483652.us
+  %polly.access.Packed_MemRef_call1483654.us = getelementptr double, double* %Packed_MemRef_call1483, i64 %polly.access.add.Packed_MemRef_call1483653.us
+  %_p_scalar_655.us = load double, double* %polly.access.Packed_MemRef_call1483654.us, align 8
+  %p_mul27.i.us = fmul fast double %_p_scalar_659.us, %_p_scalar_655.us
+  %204 = mul nuw nsw i64 %203, 8000
+  %scevgep661.us = getelementptr i8, i8* %scevgep656.us, i64 %204
+  %scevgep661662.us = bitcast i8* %scevgep661.us to double*
+  %_p_scalar_663.us = load double, double* %scevgep661662.us, align 8, !alias.scope !93, !noalias !98
+  %p_mul37.i.us = fmul fast double %_p_scalar_667.us, %_p_scalar_663.us
+  %205 = shl i64 %203, 3
+  %206 = add i64 %205, %209
+  %scevgep668.us = getelementptr i8, i8* %call, i64 %206
+  %scevgep668669.us = bitcast i8* %scevgep668.us to double*
+  %_p_scalar_670.us = load double, double* %scevgep668669.us, align 8, !alias.scope !89, !noalias !91
+  %p_reass.add.i.us = fadd fast double %p_mul37.i.us, %p_mul27.i.us
+  %p_reass.mul.i.us = fmul fast double %p_reass.add.i.us, 1.500000e+00
+  %p_add42.i.us = fadd fast double %p_reass.mul.i.us, %_p_scalar_670.us
+  store double %p_add42.i.us, double* %scevgep668669.us, align 8, !alias.scope !89, !noalias !91
+  %polly.indvar_next650.us = add nuw nsw i64 %polly.indvar649.us, 1
+  %exitcond1058.not = icmp eq i64 %polly.indvar649.us, %smin1057
+  br i1 %exitcond1058.not, label %polly.loop_exit647.us, label %polly.loop_header645.us
+
+polly.loop_exit647.us:                            ; preds = %polly.loop_header645.us, %polly.loop_header637.us
+  %polly.indvar_next642.us = add nuw nsw i64 %polly.indvar641.us, 1
+  %polly.loop_cond643.us = icmp ult i64 %polly.indvar641.us, 79
+  %indvars.iv.next1056 = add i64 %indvars.iv1055, 1
+  br i1 %polly.loop_cond643.us, label %polly.loop_header637.us, label %polly.loop_exit639.loopexit.us
+
+polly.loop_header645.preheader.us:                ; preds = %polly.loop_header637.us
+  %207 = add nsw i64 %polly.indvar641.us, %189
+  %208 = mul i64 %207, 8000
+  %scevgep657.us = getelementptr i8, i8* %scevgep656.us, i64 %208
+  %scevgep657658.us = bitcast i8* %scevgep657.us to double*
+  %_p_scalar_659.us = load double, double* %scevgep657658.us, align 8, !alias.scope !93, !noalias !98
+  %polly.access.add.Packed_MemRef_call1483665.us = add nsw i64 %202, %polly.access.mul.Packed_MemRef_call1483652.us
+  %polly.access.Packed_MemRef_call1483666.us = getelementptr double, double* %Packed_MemRef_call1483, i64 %polly.access.add.Packed_MemRef_call1483665.us
+  %_p_scalar_667.us = load double, double* %polly.access.Packed_MemRef_call1483666.us, align 8
+  %209 = mul i64 %207, 9600
+  br label %polly.loop_header645.us
+
+polly.loop_exit639.loopexit.us:                   ; preds = %polly.loop_exit647.us
+  %polly.indvar_next634.us = add nuw nsw i64 %polly.indvar633.us, 1
+  %exitcond1059.not = icmp eq i64 %polly.indvar_next634.us, 1000
+  br i1 %exitcond1059.not, label %polly.loop_exit632, label %polly.loop_header630.us
+
+polly.loop_header616:                             ; preds = %polly.loop_header597, %polly.loop_header616
+  %polly.indvar620 = phi i64 [ %polly.indvar_next621, %polly.loop_header616 ], [ %194, %polly.loop_header597 ]
+  %210 = add nuw nsw i64 %polly.indvar620, %187
+  %polly.access.mul.call1624 = mul nsw i64 %210, 1000
+  %polly.access.add.call1625 = add nuw nsw i64 %polly.access.mul.call1624, %polly.indvar600
+  %polly.access.call1626 = getelementptr double, double* %polly.access.cast.call1675, i64 %polly.access.add.call1625
+  %polly.access.call1626.load = load double, double* %polly.access.call1626, align 8, !alias.scope !92, !noalias !97
+  %polly.access.add.Packed_MemRef_call1483628 = add nuw nsw i64 %polly.indvar620, %polly.access.mul.Packed_MemRef_call1483627
+  %polly.access.Packed_MemRef_call1483629 = getelementptr double, double* %Packed_MemRef_call1483, i64 %polly.access.add.Packed_MemRef_call1483628
+  store double %polly.access.call1626.load, double* %polly.access.Packed_MemRef_call1483629, align 8
+  %polly.indvar_next621 = add nuw nsw i64 %polly.indvar620, 1
+  %polly.loop_cond622.not.not = icmp slt i64 %polly.indvar620, %195
+  br i1 %polly.loop_cond622.not.not, label %polly.loop_header616, label %polly.loop_exit618
+
+polly.loop_header797:                             ; preds = %entry, %polly.loop_exit805
+  %indvars.iv1087 = phi i64 [ %indvars.iv.next1088, %polly.loop_exit805 ], [ 0, %entry ]
+  %polly.indvar800 = phi i64 [ %polly.indvar_next801, %polly.loop_exit805 ], [ 0, %entry ]
+  %smin1089 = call i64 @llvm.smin.i64(i64 %indvars.iv1087, i64 -1168)
+  %211 = shl nsw i64 %polly.indvar800, 5
+  %212 = add nsw i64 %smin1089, 1199
+  br label %polly.loop_header803
+
+polly.loop_exit805:                               ; preds = %polly.loop_exit811
+  %polly.indvar_next801 = add nuw nsw i64 %polly.indvar800, 1
+  %indvars.iv.next1088 = add nsw i64 %indvars.iv1087, -32
+  %exitcond1092.not = icmp eq i64 %polly.indvar_next801, 38
+  br i1 %exitcond1092.not, label %polly.loop_header824, label %polly.loop_header797
+
+polly.loop_header803:                             ; preds = %polly.loop_exit811, %polly.loop_header797
+  %indvars.iv1083 = phi i64 [ %indvars.iv.next1084, %polly.loop_exit811 ], [ 0, %polly.loop_header797 ]
+  %polly.indvar806 = phi i64 [ %polly.indvar_next807, %polly.loop_exit811 ], [ 0, %polly.loop_header797 ]
+  %213 = mul nsw i64 %polly.indvar806, -32
+  %smin1127 = call i64 @llvm.smin.i64(i64 %213, i64 -1168)
+  %214 = add nsw i64 %smin1127, 1200
+  %smin1085 = call i64 @llvm.smin.i64(i64 %indvars.iv1083, i64 -1168)
+  %215 = shl nsw i64 %polly.indvar806, 5
+  %216 = add nsw i64 %smin1085, 1199
+  br label %polly.loop_header809
+
+polly.loop_exit811:                               ; preds = %polly.loop_exit817
+  %polly.indvar_next807 = add nuw nsw i64 %polly.indvar806, 1
+  %indvars.iv.next1084 = add nsw i64 %indvars.iv1083, -32
+  %exitcond1091.not = icmp eq i64 %polly.indvar_next807, 38
+  br i1 %exitcond1091.not, label %polly.loop_exit805, label %polly.loop_header803
+
+polly.loop_header809:                             ; preds = %polly.loop_exit817, %polly.loop_header803
+  %polly.indvar812 = phi i64 [ 0, %polly.loop_header803 ], [ %polly.indvar_next813, %polly.loop_exit817 ]
+  %217 = add nuw nsw i64 %polly.indvar812, %211
+  %218 = trunc i64 %217 to i32
+  %219 = mul nuw nsw i64 %217, 9600
+  %min.iters.check = icmp eq i64 %214, 0
+  br i1 %min.iters.check, label %polly.loop_header815, label %vector.ph1128
+
+vector.ph1128:                                    ; preds = %polly.loop_header809
+  %broadcast.splatinsert1135 = insertelement <4 x i64> poison, i64 %215, i32 0
+  %broadcast.splat1136 = shufflevector <4 x i64> %broadcast.splatinsert1135, <4 x i64> poison, <4 x i32> zeroinitializer
+  %broadcast.splatinsert1137 = insertelement <4 x i32> poison, i32 %218, i32 0
+  %broadcast.splat1138 = shufflevector <4 x i32> %broadcast.splatinsert1137, <4 x i32> poison, <4 x i32> zeroinitializer
+  br label %vector.body1126
+
+vector.body1126:                                  ; preds = %vector.body1126, %vector.ph1128
+  %index1129 = phi i64 [ 0, %vector.ph1128 ], [ %index.next1130, %vector.body1126 ]
+  %vec.ind1133 = phi <4 x i64> [ <i64 0, i64 1, i64 2, i64 3>, %vector.ph1128 ], [ %vec.ind.next1134, %vector.body1126 ]
+  %220 = add nuw nsw <4 x i64> %vec.ind1133, %broadcast.splat1136
+  %221 = trunc <4 x i64> %220 to <4 x i32>
+  %222 = mul <4 x i32> %broadcast.splat1138, %221
+  %223 = add <4 x i32> %222, <i32 3, i32 3, i32 3, i32 3>
+  %224 = urem <4 x i32> %223, <i32 1200, i32 1200, i32 1200, i32 1200>
+  %225 = sitofp <4 x i32> %224 to <4 x double>
+  %226 = fmul fast <4 x double> %225, <double 1.000000e-03, double 1.000000e-03, double 1.000000e-03, double 1.000000e-03>
+  %227 = extractelement <4 x i64> %220, i32 0
+  %228 = shl i64 %227, 3
+  %229 = add nuw nsw i64 %228, %219
+  %230 = getelementptr i8, i8* %call, i64 %229
+  %231 = bitcast i8* %230 to <4 x double>*
+  store <4 x double> %226, <4 x double>* %231, align 8, !alias.scope !99, !noalias !101
+  %index.next1130 = add i64 %index1129, 4
+  %vec.ind.next1134 = add <4 x i64> %vec.ind1133, <i64 4, i64 4, i64 4, i64 4>
+  %232 = icmp eq i64 %index.next1130, %214
+  br i1 %232, label %polly.loop_exit817, label %vector.body1126, !llvm.loop !104
+
+polly.loop_exit817:                               ; preds = %vector.body1126, %polly.loop_header815
+  %polly.indvar_next813 = add nuw nsw i64 %polly.indvar812, 1
+  %exitcond1090.not = icmp eq i64 %polly.indvar812, %212
+  br i1 %exitcond1090.not, label %polly.loop_exit811, label %polly.loop_header809
+
+polly.loop_header815:                             ; preds = %polly.loop_header809, %polly.loop_header815
+  %polly.indvar818 = phi i64 [ %polly.indvar_next819, %polly.loop_header815 ], [ 0, %polly.loop_header809 ]
+  %233 = add nuw nsw i64 %polly.indvar818, %215
+  %234 = trunc i64 %233 to i32
+  %235 = mul i32 %234, %218
+  %236 = add i32 %235, 3
+  %237 = urem i32 %236, 1200
+  %p_conv31.i = sitofp i32 %237 to double
+  %p_div33.i = fmul fast double %p_conv31.i, 1.000000e-03
+  %238 = shl i64 %233, 3
+  %239 = add nuw nsw i64 %238, %219
+  %scevgep821 = getelementptr i8, i8* %call, i64 %239
+  %scevgep821822 = bitcast i8* %scevgep821 to double*
+  store double %p_div33.i, double* %scevgep821822, align 8, !alias.scope !99, !noalias !101
+  %polly.indvar_next819 = add nuw nsw i64 %polly.indvar818, 1
+  %exitcond1086.not = icmp eq i64 %polly.indvar818, %216
+  br i1 %exitcond1086.not, label %polly.loop_exit817, label %polly.loop_header815, !llvm.loop !105
+
+polly.loop_header824:                             ; preds = %polly.loop_exit805, %polly.loop_exit832
+  %indvars.iv1077 = phi i64 [ %indvars.iv.next1078, %polly.loop_exit832 ], [ 0, %polly.loop_exit805 ]
+  %polly.indvar827 = phi i64 [ %polly.indvar_next828, %polly.loop_exit832 ], [ 0, %polly.loop_exit805 ]
+  %smin1079 = call i64 @llvm.smin.i64(i64 %indvars.iv1077, i64 -1168)
+  %240 = shl nsw i64 %polly.indvar827, 5
+  %241 = add nsw i64 %smin1079, 1199
+  br label %polly.loop_header830
+
+polly.loop_exit832:                               ; preds = %polly.loop_exit838
+  %polly.indvar_next828 = add nuw nsw i64 %polly.indvar827, 1
+  %indvars.iv.next1078 = add nsw i64 %indvars.iv1077, -32
+  %exitcond1082.not = icmp eq i64 %polly.indvar_next828, 38
+  br i1 %exitcond1082.not, label %polly.loop_header850, label %polly.loop_header824
+
+polly.loop_header830:                             ; preds = %polly.loop_exit838, %polly.loop_header824
+  %indvars.iv1073 = phi i64 [ %indvars.iv.next1074, %polly.loop_exit838 ], [ 0, %polly.loop_header824 ]
+  %polly.indvar833 = phi i64 [ %polly.indvar_next834, %polly.loop_exit838 ], [ 0, %polly.loop_header824 ]
+  %242 = mul nsw i64 %polly.indvar833, -32
+  %smin1142 = call i64 @llvm.smin.i64(i64 %242, i64 -968)
+  %243 = add nsw i64 %smin1142, 1000
+  %smin1075 = call i64 @llvm.smin.i64(i64 %indvars.iv1073, i64 -968)
+  %244 = shl nsw i64 %polly.indvar833, 5
+  %245 = add nsw i64 %smin1075, 999
+  br label %polly.loop_header836
+
+polly.loop_exit838:                               ; preds = %polly.loop_exit844
+  %polly.indvar_next834 = add nuw nsw i64 %polly.indvar833, 1
+  %indvars.iv.next1074 = add nsw i64 %indvars.iv1073, -32
+  %exitcond1081.not = icmp eq i64 %polly.indvar_next834, 32
+  br i1 %exitcond1081.not, label %polly.loop_exit832, label %polly.loop_header830
+
+polly.loop_header836:                             ; preds = %polly.loop_exit844, %polly.loop_header830
+  %polly.indvar839 = phi i64 [ 0, %polly.loop_header830 ], [ %polly.indvar_next840, %polly.loop_exit844 ]
+  %246 = add nuw nsw i64 %polly.indvar839, %240
+  %247 = trunc i64 %246 to i32
+  %248 = mul nuw nsw i64 %246, 8000
+  %min.iters.check1143 = icmp eq i64 %243, 0
+  br i1 %min.iters.check1143, label %polly.loop_header842, label %vector.ph1144
+
+vector.ph1144:                                    ; preds = %polly.loop_header836
+  %broadcast.splatinsert1153 = insertelement <4 x i64> poison, i64 %244, i32 0
+  %broadcast.splat1154 = shufflevector <4 x i64> %broadcast.splatinsert1153, <4 x i64> poison, <4 x i32> zeroinitializer
+  %broadcast.splatinsert1155 = insertelement <4 x i32> poison, i32 %247, i32 0
+  %broadcast.splat1156 = shufflevector <4 x i32> %broadcast.splatinsert1155, <4 x i32> poison, <4 x i32> zeroinitializer
+  br label %vector.body1141
+
+vector.body1141:                                  ; preds = %vector.body1141, %vector.ph1144
+  %index1147 = phi i64 [ 0, %vector.ph1144 ], [ %index.next1148, %vector.body1141 ]
+  %vec.ind1151 = phi <4 x i64> [ <i64 0, i64 1, i64 2, i64 3>, %vector.ph1144 ], [ %vec.ind.next1152, %vector.body1141 ]
+  %249 = add nuw nsw <4 x i64> %vec.ind1151, %broadcast.splat1154
+  %250 = trunc <4 x i64> %249 to <4 x i32>
+  %251 = mul <4 x i32> %broadcast.splat1156, %250
+  %252 = add <4 x i32> %251, <i32 2, i32 2, i32 2, i32 2>
+  %253 = urem <4 x i32> %252, <i32 1000, i32 1000, i32 1000, i32 1000>
+  %254 = sitofp <4 x i32> %253 to <4 x double>
+  %255 = fmul fast <4 x double> %254, <double 1.000000e-03, double 1.000000e-03, double 1.000000e-03, double 1.000000e-03>
+  %256 = extractelement <4 x i64> %249, i32 0
+  %257 = shl i64 %256, 3
+  %258 = add nuw nsw i64 %257, %248
+  %259 = getelementptr i8, i8* %call2, i64 %258
+  %260 = bitcast i8* %259 to <4 x double>*
+  store <4 x double> %255, <4 x double>* %260, align 8, !alias.scope !103, !noalias !106
+  %index.next1148 = add i64 %index1147, 4
+  %vec.ind.next1152 = add <4 x i64> %vec.ind1151, <i64 4, i64 4, i64 4, i64 4>
+  %261 = icmp eq i64 %index.next1148, %243
+  br i1 %261, label %polly.loop_exit844, label %vector.body1141, !llvm.loop !107
+
+polly.loop_exit844:                               ; preds = %vector.body1141, %polly.loop_header842
+  %polly.indvar_next840 = add nuw nsw i64 %polly.indvar839, 1
+  %exitcond1080.not = icmp eq i64 %polly.indvar839, %241
+  br i1 %exitcond1080.not, label %polly.loop_exit838, label %polly.loop_header836
+
+polly.loop_header842:                             ; preds = %polly.loop_header836, %polly.loop_header842
+  %polly.indvar845 = phi i64 [ %polly.indvar_next846, %polly.loop_header842 ], [ 0, %polly.loop_header836 ]
+  %262 = add nuw nsw i64 %polly.indvar845, %244
+  %263 = trunc i64 %262 to i32
+  %264 = mul i32 %263, %247
+  %265 = add i32 %264, 2
+  %266 = urem i32 %265, 1000
+  %p_conv10.i = sitofp i32 %266 to double
+  %p_div12.i = fmul fast double %p_conv10.i, 1.000000e-03
+  %267 = shl i64 %262, 3
+  %268 = add nuw nsw i64 %267, %248
+  %scevgep848 = getelementptr i8, i8* %call2, i64 %268
+  %scevgep848849 = bitcast i8* %scevgep848 to double*
+  store double %p_div12.i, double* %scevgep848849, align 8, !alias.scope !103, !noalias !106
+  %polly.indvar_next846 = add nuw nsw i64 %polly.indvar845, 1
+  %exitcond1076.not = icmp eq i64 %polly.indvar845, %245
+  br i1 %exitcond1076.not, label %polly.loop_exit844, label %polly.loop_header842, !llvm.loop !108
+
+polly.loop_header850:                             ; preds = %polly.loop_exit832, %polly.loop_exit858
+  %indvars.iv1067 = phi i64 [ %indvars.iv.next1068, %polly.loop_exit858 ], [ 0, %polly.loop_exit832 ]
+  %polly.indvar853 = phi i64 [ %polly.indvar_next854, %polly.loop_exit858 ], [ 0, %polly.loop_exit832 ]
+  %smin1069 = call i64 @llvm.smin.i64(i64 %indvars.iv1067, i64 -1168)
+  %269 = shl nsw i64 %polly.indvar853, 5
+  %270 = add nsw i64 %smin1069, 1199
+  br label %polly.loop_header856
+
+polly.loop_exit858:                               ; preds = %polly.loop_exit864
+  %polly.indvar_next854 = add nuw nsw i64 %polly.indvar853, 1
+  %indvars.iv.next1068 = add nsw i64 %indvars.iv1067, -32
+  %exitcond1072.not = icmp eq i64 %polly.indvar_next854, 38
+  br i1 %exitcond1072.not, label %init_array.exit, label %polly.loop_header850
+
+polly.loop_header856:                             ; preds = %polly.loop_exit864, %polly.loop_header850
+  %indvars.iv1063 = phi i64 [ %indvars.iv.next1064, %polly.loop_exit864 ], [ 0, %polly.loop_header850 ]
+  %polly.indvar859 = phi i64 [ %polly.indvar_next860, %polly.loop_exit864 ], [ 0, %polly.loop_header850 ]
+  %271 = mul nsw i64 %polly.indvar859, -32
+  %smin1160 = call i64 @llvm.smin.i64(i64 %271, i64 -968)
+  %272 = add nsw i64 %smin1160, 1000
+  %smin1065 = call i64 @llvm.smin.i64(i64 %indvars.iv1063, i64 -968)
+  %273 = shl nsw i64 %polly.indvar859, 5
+  %274 = add nsw i64 %smin1065, 999
+  br label %polly.loop_header862
+
+polly.loop_exit864:                               ; preds = %polly.loop_exit870
+  %polly.indvar_next860 = add nuw nsw i64 %polly.indvar859, 1
+  %indvars.iv.next1064 = add nsw i64 %indvars.iv1063, -32
+  %exitcond1071.not = icmp eq i64 %polly.indvar_next860, 32
+  br i1 %exitcond1071.not, label %polly.loop_exit858, label %polly.loop_header856
+
+polly.loop_header862:                             ; preds = %polly.loop_exit870, %polly.loop_header856
+  %polly.indvar865 = phi i64 [ 0, %polly.loop_header856 ], [ %polly.indvar_next866, %polly.loop_exit870 ]
+  %275 = add nuw nsw i64 %polly.indvar865, %269
+  %276 = trunc i64 %275 to i32
+  %277 = mul nuw nsw i64 %275, 8000
+  %min.iters.check1161 = icmp eq i64 %272, 0
+  br i1 %min.iters.check1161, label %polly.loop_header868, label %vector.ph1162
+
+vector.ph1162:                                    ; preds = %polly.loop_header862
+  %broadcast.splatinsert1171 = insertelement <4 x i64> poison, i64 %273, i32 0
+  %broadcast.splat1172 = shufflevector <4 x i64> %broadcast.splatinsert1171, <4 x i64> poison, <4 x i32> zeroinitializer
+  %broadcast.splatinsert1173 = insertelement <4 x i32> poison, i32 %276, i32 0
+  %broadcast.splat1174 = shufflevector <4 x i32> %broadcast.splatinsert1173, <4 x i32> poison, <4 x i32> zeroinitializer
+  br label %vector.body1159
+
+vector.body1159:                                  ; preds = %vector.body1159, %vector.ph1162
+  %index1165 = phi i64 [ 0, %vector.ph1162 ], [ %index.next1166, %vector.body1159 ]
+  %vec.ind1169 = phi <4 x i64> [ <i64 0, i64 1, i64 2, i64 3>, %vector.ph1162 ], [ %vec.ind.next1170, %vector.body1159 ]
+  %278 = add nuw nsw <4 x i64> %vec.ind1169, %broadcast.splat1172
+  %279 = trunc <4 x i64> %278 to <4 x i32>
+  %280 = mul <4 x i32> %broadcast.splat1174, %279
+  %281 = add <4 x i32> %280, <i32 1, i32 1, i32 1, i32 1>
+  %282 = urem <4 x i32> %281, <i32 1200, i32 1200, i32 1200, i32 1200>
+  %283 = sitofp <4 x i32> %282 to <4 x double>
+  %284 = fmul fast <4 x double> %283, <double 0x3F4B4E81B4E81B4F, double 0x3F4B4E81B4E81B4F, double 0x3F4B4E81B4E81B4F, double 0x3F4B4E81B4E81B4F>
+  %285 = extractelement <4 x i64> %278, i32 0
+  %286 = shl i64 %285, 3
+  %287 = add nuw nsw i64 %286, %277
+  %288 = getelementptr i8, i8* %call1, i64 %287
+  %289 = bitcast i8* %288 to <4 x double>*
+  store <4 x double> %284, <4 x double>* %289, align 8, !alias.scope !102, !noalias !109
+  %index.next1166 = add i64 %index1165, 4
+  %vec.ind.next1170 = add <4 x i64> %vec.ind1169, <i64 4, i64 4, i64 4, i64 4>
+  %290 = icmp eq i64 %index.next1166, %272
+  br i1 %290, label %polly.loop_exit870, label %vector.body1159, !llvm.loop !110
+
+polly.loop_exit870:                               ; preds = %vector.body1159, %polly.loop_header868
+  %polly.indvar_next866 = add nuw nsw i64 %polly.indvar865, 1
+  %exitcond1070.not = icmp eq i64 %polly.indvar865, %270
+  br i1 %exitcond1070.not, label %polly.loop_exit864, label %polly.loop_header862
+
+polly.loop_header868:                             ; preds = %polly.loop_header862, %polly.loop_header868
+  %polly.indvar871 = phi i64 [ %polly.indvar_next872, %polly.loop_header868 ], [ 0, %polly.loop_header862 ]
+  %291 = add nuw nsw i64 %polly.indvar871, %273
+  %292 = trunc i64 %291 to i32
+  %293 = mul i32 %292, %276
+  %294 = add i32 %293, 1
+  %295 = urem i32 %294, 1200
+  %p_conv.i = sitofp i32 %295 to double
+  %p_div.i = fmul fast double %p_conv.i, 0x3F4B4E81B4E81B4F
+  %296 = shl i64 %291, 3
+  %297 = add nuw nsw i64 %296, %277
+  %scevgep875 = getelementptr i8, i8* %call1, i64 %297
+  %scevgep875876 = bitcast i8* %scevgep875 to double*
+  store double %p_div.i, double* %scevgep875876, align 8, !alias.scope !102, !noalias !109
+  %polly.indvar_next872 = add nuw nsw i64 %polly.indvar871, 1
+  %exitcond1066.not = icmp eq i64 %polly.indvar871, %274
+  br i1 %exitcond1066.not, label %polly.loop_exit870, label %polly.loop_header868, !llvm.loop !111
+}
+
+declare dso_local i8* @polybench_alloc_data(i64, i32) local_unnamed_addr #1
+
+declare dso_local void @polybench_timer_start(...) local_unnamed_addr #1
+
+declare dso_local void @polybench_timer_stop(...) local_unnamed_addr #1
+
+declare dso_local void @polybench_timer_print(...) local_unnamed_addr #1
+
+; Function Attrs: inaccessiblemem_or_argmemonly nounwind willreturn
+declare dso_local void @free(i8* nocapture noundef) local_unnamed_addr #2
+
+; Function Attrs: nofree nounwind
+declare dso_local noundef i32 @fprintf(%struct._IO_FILE* nocapture noundef, i8* nocapture noundef readonly, ...) local_unnamed_addr #3
+
+; Function Attrs: nofree nounwind
+declare noundef i64 @fwrite(i8* nocapture noundef, i64 noundef, i64 noundef, %struct._IO_FILE* nocapture noundef) local_unnamed_addr #4
+
+; Function Attrs: nofree nounwind
+declare noundef i32 @fputc(i32 noundef, %struct._IO_FILE* nocapture noundef) local_unnamed_addr #4
+
+declare noalias i8* @malloc(i64)
+
+; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
+declare i64 @llvm.smax.i64(i64, i64) #5
+
+; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
+declare i64 @llvm.smin.i64(i64, i64) #5
+
+attributes #0 = { nounwind uwtable "denormal-fp-math"="preserve-sign,preserve-sign" "denormal-fp-math-f32"="ieee,ieee" "frame-pointer"="none" "no-infs-fp-math"="true" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "polly-optimized" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+64bit,+adx,+aes,+avx,+avx2,+bmi,+bmi2,+clflushopt,+clwb,+clzero,+cmov,+cx16,+cx8,+f16c,+fma,+fsgsbase,+fxsr,+lzcnt,+mmx,+movbe,+mwaitx,+pclmul,+popcnt,+prfchw,+rdpid,+rdrnd,+rdseed,+sahf,+sha,+sse,+sse2,+sse3,+sse4.1,+sse4.2,+sse4a,+ssse3,+wbnoinvd,+x87,+xsave,+xsavec,+xsaveopt,+xsaves,-amx-bf16,-amx-int8,-amx-tile,-avx512bf16,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vp2intersect,-avx512vpopcntdq,-avxvnni,-cldemote,-enqcmd,-fma4,-gfni,-hreset,-invpcid,-kl,-lwp,-movdir64b,-movdiri,-pconfig,-pku,-prefetchwt1,-ptwrite,-rtm,-serialize,-sgx,-shstk,-tbm,-tsxldtrk,-uintr,-vaes,-vpclmulqdq,-waitpkg,-widekl,-xop" "unsafe-fp-math"="true" }
+attributes #1 = { "denormal-fp-math"="preserve-sign,preserve-sign" "denormal-fp-math-f32"="ieee,ieee" "frame-pointer"="none" "no-infs-fp-math"="true" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+64bit,+adx,+aes,+avx,+avx2,+bmi,+bmi2,+clflushopt,+clwb,+clzero,+cmov,+cx16,+cx8,+f16c,+fma,+fsgsbase,+fxsr,+lzcnt,+mmx,+movbe,+mwaitx,+pclmul,+popcnt,+prfchw,+rdpid,+rdrnd,+rdseed,+sahf,+sha,+sse,+sse2,+sse3,+sse4.1,+sse4.2,+sse4a,+ssse3,+wbnoinvd,+x87,+xsave,+xsavec,+xsaveopt,+xsaves,-amx-bf16,-amx-int8,-amx-tile,-avx512bf16,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vp2intersect,-avx512vpopcntdq,-avxvnni,-cldemote,-enqcmd,-fma4,-gfni,-hreset,-invpcid,-kl,-lwp,-movdir64b,-movdiri,-pconfig,-pku,-prefetchwt1,-ptwrite,-rtm,-serialize,-sgx,-shstk,-tbm,-tsxldtrk,-uintr,-vaes,-vpclmulqdq,-waitpkg,-widekl,-xop" "unsafe-fp-math"="true" }
+attributes #2 = { inaccessiblemem_or_argmemonly nounwind willreturn "denormal-fp-math"="preserve-sign,preserve-sign" "denormal-fp-math-f32"="ieee,ieee" "frame-pointer"="none" "no-infs-fp-math"="true" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+64bit,+adx,+aes,+avx,+avx2,+bmi,+bmi2,+clflushopt,+clwb,+clzero,+cmov,+cx16,+cx8,+f16c,+fma,+fsgsbase,+fxsr,+lzcnt,+mmx,+movbe,+mwaitx,+pclmul,+popcnt,+prfchw,+rdpid,+rdrnd,+rdseed,+sahf,+sha,+sse,+sse2,+sse3,+sse4.1,+sse4.2,+sse4a,+ssse3,+wbnoinvd,+x87,+xsave,+xsavec,+xsaveopt,+xsaves,-amx-bf16,-amx-int8,-amx-tile,-avx512bf16,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vp2intersect,-avx512vpopcntdq,-avxvnni,-cldemote,-enqcmd,-fma4,-gfni,-hreset,-invpcid,-kl,-lwp,-movdir64b,-movdiri,-pconfig,-pku,-prefetchwt1,-ptwrite,-rtm,-serialize,-sgx,-shstk,-tbm,-tsxldtrk,-uintr,-vaes,-vpclmulqdq,-waitpkg,-widekl,-xop" "unsafe-fp-math"="true" }
+attributes #3 = { nofree nounwind "denormal-fp-math"="preserve-sign,preserve-sign" "denormal-fp-math-f32"="ieee,ieee" "frame-pointer"="none" "no-infs-fp-math"="true" "no-nans-fp-math"="true" "no-signed-zeros-fp-math"="true" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+64bit,+adx,+aes,+avx,+avx2,+bmi,+bmi2,+clflushopt,+clwb,+clzero,+cmov,+cx16,+cx8,+f16c,+fma,+fsgsbase,+fxsr,+lzcnt,+mmx,+movbe,+mwaitx,+pclmul,+popcnt,+prfchw,+rdpid,+rdrnd,+rdseed,+sahf,+sha,+sse,+sse2,+sse3,+sse4.1,+sse4.2,+sse4a,+ssse3,+wbnoinvd,+x87,+xsave,+xsavec,+xsaveopt,+xsaves,-amx-bf16,-amx-int8,-amx-tile,-avx512bf16,-avx512bitalg,-avx512bw,-avx512cd,-avx512dq,-avx512er,-avx512f,-avx512ifma,-avx512pf,-avx512vbmi,-avx512vbmi2,-avx512vl,-avx512vnni,-avx512vp2intersect,-avx512vpopcntdq,-avxvnni,-cldemote,-enqcmd,-fma4,-gfni,-hreset,-invpcid,-kl,-lwp,-movdir64b,-movdiri,-pconfig,-pku,-prefetchwt1,-ptwrite,-rtm,-serialize,-sgx,-shstk,-tbm,-tsxldtrk,-uintr,-vaes,-vpclmulqdq,-waitpkg,-widekl,-xop" "unsafe-fp-math"="true" }
+attributes #4 = { nofree nounwind }
+attributes #5 = { nofree nosync nounwind readnone speculatable willreturn }
+attributes #6 = { nounwind }
+attributes #7 = { cold nounwind }
+
+!llvm.module.flags = !{!0}
+!llvm.ident = !{!1}
+
+!0 = !{i32 1, !"wchar_size", i32 4}
+!1 = !{!"clang version 13.0.0 (https://github.com/SOLLVE/llvm-project.git a48e6204b7f1f0d6ea84ab2f2f4c04e15a4338fb)"}
+!2 = !{!3, !3, i64 0}
+!3 = !{!"double", !4, i64 0}
+!4 = !{!"omnipotent char", !5, i64 0}
+!5 = !{!"Simple C/C++ TBAA"}
+!6 = !{!7}
+!7 = distinct !{!7, !8}
+!8 = distinct !{!8, !"LVerDomain"}
+!9 = !{!10}
+!10 = distinct !{!10, !8}
+!11 = distinct !{!11, !12, !13}
+!12 = !{!"llvm.loop.unroll.disable"}
+!13 = !{!"llvm.loop.isvectorized", i32 1}
+!14 = distinct !{!14, !12, !13}
+!15 = distinct !{!15, !12}
+!16 = distinct !{!16, !12, !13}
+!17 = distinct !{!17, !12}
+!18 = distinct !{!18, !12, !13}
+!19 = distinct !{!19, !12, !13}
+!20 = distinct !{!20, !12}
+!21 = distinct !{!"A"}
+!22 = distinct !{!22, !12, !23, !24, !25, !26, !29}
+!23 = !{!"llvm.loop.disable_nonforced"}
+!24 = !{!"llvm.loop.id", !"k"}
+!25 = !{!"llvm.loop.tile.size", i32 128}
+!26 = !{!"llvm.loop.tile.followup_floor", !27}
+!27 = distinct !{!27, !12, !23, !28}
+!28 = !{!"llvm.loop.id", !"k1"}
+!29 = !{!"llvm.loop.tile.followup_tile", !30}
+!30 = distinct !{!30, !12, !31}
+!31 = !{!"llvm.loop.id", !"k2"}
+!32 = distinct !{!32, !12, !23, !33, !34, !35, !38}
+!33 = !{!"llvm.loop.id", !"j"}
+!34 = !{!"llvm.loop.tile.size", i32 2048}
+!35 = !{!"llvm.loop.tile.followup_floor", !36}
+!36 = distinct !{!36, !12, !23, !37}
+!37 = !{!"llvm.loop.id", !"j1"}
+!38 = !{!"llvm.loop.tile.followup_tile", !39}
+!39 = distinct !{!39, !12, !23, !40, !41}
+!40 = !{!"llvm.loop.id", !"j2"}
+!41 = !{!"llvm.loop.interchange.followup_interchanged", !42}
+!42 = distinct !{!42, !12, !23, !40, !43, !44, !45}
+!43 = !{!"llvm.data.pack.enable", i1 true}
+!44 = !{!"llvm.data.pack.array", !21}
+!45 = !{!"llvm.data.pack.allocate", !"malloc"}
+!46 = distinct !{!46, !12, !23, !47, !48, !49, !50, !51, !57}
+!47 = !{!"llvm.loop.id", !"i"}
+!48 = !{!"llvm.loop.tile.enable", i1 true}
+!49 = !{!"llvm.loop.tile.depth", i32 3}
+!50 = !{!"llvm.loop.tile.size", i32 80}
+!51 = !{!"llvm.loop.tile.followup_floor", !52}
+!52 = distinct !{!52, !12, !23, !53, !54, !55, !56}
+!53 = !{!"llvm.loop.id", !"i1"}
+!54 = !{!"llvm.loop.interchange.enable", i1 true}
+!55 = !{!"llvm.loop.interchange.depth", i32 5}
+!56 = !{!"llvm.loop.interchange.permutation", i32 2, i32 0, i32 1, i32 4, i32 3}
+!57 = !{!"llvm.loop.tile.followup_tile", !58}
+!58 = distinct !{!58, !12, !23, !59}
+!59 = !{!"llvm.loop.id", !"i2"}
+!60 = distinct !{!60, !12, !13}
+!61 = distinct !{!61, !12, !13}
+!62 = distinct !{!62, !12, !13}
+!63 = distinct !{!63, !12, !13}
+!64 = !{!65, !65, i64 0}
+!65 = !{!"any pointer", !4, i64 0}
+!66 = distinct !{!66, !12}
+!67 = distinct !{!67, !12}
+!68 = distinct !{!68, !69, !"polly.alias.scope.MemRef_call"}
+!69 = distinct !{!69, !"polly.alias.scope.domain"}
+!70 = !{!71, !72, !73}
+!71 = distinct !{!71, !69, !"polly.alias.scope.MemRef_call1"}
+!72 = distinct !{!72, !69, !"polly.alias.scope.MemRef_call2"}
+!73 = distinct !{!73, !69, !"polly.alias.scope.Packed_MemRef_call1"}
+!74 = distinct !{!74, !13}
+!75 = distinct !{!75, !76, !13}
+!76 = !{!"llvm.loop.unroll.runtime.disable"}
+!77 = !{!68, !72, !73}
+!78 = !{!68, !71, !73}
+!79 = distinct !{!79, !80, !"polly.alias.scope.MemRef_call"}
+!80 = distinct !{!80, !"polly.alias.scope.domain"}
+!81 = !{!82, !83, !84}
+!82 = distinct !{!82, !80, !"polly.alias.scope.MemRef_call1"}
+!83 = distinct !{!83, !80, !"polly.alias.scope.MemRef_call2"}
+!84 = distinct !{!84, !80, !"polly.alias.scope.Packed_MemRef_call1"}
+!85 = distinct !{!85, !13}
+!86 = distinct !{!86, !76, !13}
+!87 = !{!79, !83, !84}
+!88 = !{!79, !82, !84}
+!89 = distinct !{!89, !90, !"polly.alias.scope.MemRef_call"}
+!90 = distinct !{!90, !"polly.alias.scope.domain"}
+!91 = !{!92, !93, !94}
+!92 = distinct !{!92, !90, !"polly.alias.scope.MemRef_call1"}
+!93 = distinct !{!93, !90, !"polly.alias.scope.MemRef_call2"}
+!94 = distinct !{!94, !90, !"polly.alias.scope.Packed_MemRef_call1"}
+!95 = distinct !{!95, !13}
+!96 = distinct !{!96, !76, !13}
+!97 = !{!89, !93, !94}
+!98 = !{!89, !92, !94}
+!99 = distinct !{!99, !100, !"polly.alias.scope.MemRef_call"}
+!100 = distinct !{!100, !"polly.alias.scope.domain"}
+!101 = !{!102, !103}
+!102 = distinct !{!102, !100, !"polly.alias.scope.MemRef_call1"}
+!103 = distinct !{!103, !100, !"polly.alias.scope.MemRef_call2"}
+!104 = distinct !{!104, !13}
+!105 = distinct !{!105, !76, !13}
+!106 = !{!102, !99}
+!107 = distinct !{!107, !13}
+!108 = distinct !{!108, !76, !13}
+!109 = !{!103, !99}
+!110 = distinct !{!110, !13}
+!111 = distinct !{!111, !76, !13}
