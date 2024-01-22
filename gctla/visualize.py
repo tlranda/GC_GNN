@@ -26,6 +26,8 @@ def build():
                         help="Files to not use for plotting that may be globbed in inputs list (default %(default)s)")
     iocntrl.add_argument("--combine-by-directory", action="store_true",
                         help="Conglomerate files from the same directory into same DataFrame (default %(default)s)")
+    iocntrl.add_argument("--oracle-rank", default=None,
+                        help="Use this CSV as an oracle to rank input configurations rather than their objective value")
     iocntrl.add_argument("--format", choices=["png", "pdf", "svg", "jpeg"], default="png",
                         help="Export format for figures (default %(default)s)")
     pcntrl = prs.add_argument_group("Plot Controls")
@@ -55,6 +57,8 @@ def parse(args=None, prs=None):
     if args.fig_pts is not None:
         args.fig_size = set_size(args.fig_pts)
     del args.fig_pts
+    if args.oracle_rank is not None:
+        args.oracle_rank = pd.read_csv(args.oracle_rank).sort_values(by=['objective']).reset_index(drop=True)
     # Show effective arguments
     print(args)
     return args
@@ -68,19 +72,33 @@ def set_size(width, fraction=1, subplots=(1,1)):
     print(f"Calculated {width} to represent: {fig_width_in} x {fig_height_in} inches")
     return (fig_width_in, fig_height_in)
 
+def oracle_rank(fname, args):
+    data = pd.read_csv(fname).sort_values(by=['objective']).reset_index(drop=True)
+    if args.oracle_rank is not None:
+        rerank = []
+        columns = [_ for _ in data.columns if _ not in ['scale','objective']]
+        for idx, row in data.iterrows():
+            search = tuple([str(e) for e in row[columns]])
+            n_column_matches = (args.oracle_rank[columns].astype(str) == search).sum(1)
+            full_match_idx = np.where(n_column_matches == len(columns))[0]
+            assert len(full_match_idx) == 1
+            rerank.append(full_match_idx[0])
+        data.loc[:,'objective'] = rerank
+    return data
+
 def load(args):
     load_dict = {}
     # Initial loading for all files
     for fname in args.inputs:
         if not args.combine_by_directory:
-            load_dict[fname] = pd.read_csv(fname).sort_values(by=['objective'])
+            load_dict[fname] = oracle_rank(fname, args)
         else:
             dirname = pathlib.Path(fname).parent
             name = pathlib.Path(fname).name
             if dirname in load_dict.keys():
-                load_dict[dirname][name] = pd.read_csv(fname)
+                load_dict[dirname][name] = oracle_rank(fname, args)
             else:
-                load_dict[dirname] = {name: pd.read_csv(fname)}
+                load_dict[dirname] = {name: oracle_rank(fname, args)}
     # Combine everything in the same directory if given
     if args.combine_by_directory:
         new_dict = {}
@@ -101,6 +119,12 @@ def load(args):
 def prepare_fig(args):
     fig, ax = plt.subplots(figsize=args.fig_size)
     fig.set_tight_layout(True)
+    ax.set_xlabel("Sorted Evaluations (Best-to-Worst Order)")
+    if args.oracle_rank is not None:
+        ax.set_ylim([0, len(args.oracle_rank)])
+        ax.set_ylabel("Oracle Rank")
+    else:
+        ax.set_ylabel("Objective Value")
     return fig, ax
 
 def plot_source(fig, ax, idx, source, label, args):
