@@ -16,6 +16,8 @@ def build():
     columns = prs.add_argument_group("Column Management")
     columns.add_argument("--col-regex", default="filename",
                         help="Column name in prediction CSVs to reference for regex matching (default %(default)s)")
+    columns.add_argument("--config-alias", nargs="*", default=None,
+                        help="Column names in configuration CSVs to alias (default %(default)s)")
     columns.add_argument("--col-config-objective", default="objective",
                         help="Column name in configuration CSVs to override with predicted objective (default %(default)s)")
     columns.add_argument("--col-pred-objective", default="predicted_runtime",
@@ -55,6 +57,12 @@ def csv_name_to_size(ele):
 def main(args=None):
     args = parse(args)
     tune_configs = load_tuning(args.configs)
+    if args.config_alias is not None:
+        for alias in args.config_alias:
+            tune_configs.insert(0,f"alias_{alias}",tune_configs.loc[:,alias].values)
+    if args.col_transfer is not None:
+        for transfer in args.col_transfer:
+            tune_configs.insert(0, transfer, [None] * len(tune_configs))
     pred_configs = load_tuning(args.predictions)
     output_df = pd.DataFrame([], columns=tune_configs.columns.difference(['csv_name']))
     for (config, regex) in zip(args.configs, args.regids):
@@ -80,6 +88,9 @@ def main(args=None):
             elif len(ivals) == 0:
                 raise ValueError(f"Your regex '{regex}' failed to match the {idx}th row record in {row['csv_name']}: {row[args.col_regex]}")
             tune_subset.loc[ivals[0],args.col_config_objective] = row[args.col_pred_objective]
+            if args.col_transfer is not None:
+                for transfer in args.col_transfer:
+                    tune_subset.loc[ivals[0],transfer] = row[transfer]
         # Convert csv_name values to sizes
         tune_subset = tune_subset.rename(columns={'csv_name':'size'})
         tune_subset['size'] = tune_subset.loc[:,('size')].map(csv_name_to_size)
