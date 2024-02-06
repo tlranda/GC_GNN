@@ -2,7 +2,7 @@
     Use an oracle dataset to progressively determine what kind of data is necessary from self-task or transfer tasks to "succeed" in autotuning
 """
 import pandas as pd, numpy as np
-import os, time, sys, argparse, pathlib, inspect, warnings, json, logging, itertools
+import os, time, sys, argparse, pathlib, inspect, warnings, json, logging, itertools, multiprocessing
 from importlib import import_module
 from copy import deepcopy
 from sdv.single_table import GaussianCopulaSynthesizer as GaussianCopula
@@ -23,10 +23,13 @@ def hypergeo(i,p,t,k):
 # Make JSON-style logs
 class JsonLogFormatter(logging.Formatter):
     def format(self, record):
+        tag, identifier, message = record.getMessage().split('||',2)
         log_data = {
             'timestamp': self.formatTime(record),
             'level': record.levelname,
-            'message': record.getMessage(),
+            'tag': tag,
+            'id': identifier,
+            'message': message,
             'moduleName': record.module,
             'funcName': record.funcName,
             'lineNo': record.lineno,
@@ -104,11 +107,6 @@ def parse(args=None, prs=None):
         torch.manual_seed(args.fit_seed)
     if args.sample_seed is None:
         args.sample_seed = [None]
-    # Custom data schedule
-    if args.custom_data_schedule is not None:
-        args.custom_data_schedule = np.load(open(args.custom_data_schedule,'rb'))
-        if not np.issubdtype(args.custom_data_schedule.dtype,int):
-            raise ValueError(f"Custom data schedule must use an integer type (operate as indices), got {args.custom_data_schedule.dtype}")
     # Instantiate log file handler
     if args.log_experiment is None:
         handler = logging.StreamHandler(sys.stdout)
@@ -146,7 +144,7 @@ def load_input(args):
         load[non_scale_cols] = load[non_scale_cols].astype(str)
         concat.append(load)
     loaded = pd.concat(concat).sort_values(by=['objective']).reset_index(drop=True)
-    logger.debug(f"Loaded {len(loaded)} input data from {', '.join(args.input_data)}")
+    logger.debug(f"Input_Load_Len||0||{len(loaded)}")
     return loaded
 
 def build_model(df, match_cols, args):
@@ -160,7 +158,7 @@ def build_model(df, match_cols, args):
         # Convert name to value
         df['scale'] = [lookup[_] for _ in df['scale'].values]
     evaluator = import_hook_from_file(args.problem_file, oracle_scale_name)
-    logger.debug(f"Imported evaluator from {args.problem_file} based on scale name: {oracle_scale_name}")
+    logger.debug(f"Model_Scale||0||{oracle_scale_name}")
     # Construct SDV model
     constraints = [{'constraint_class': 'ScalarRange',
                     'constraint_parameters': {
@@ -171,12 +169,12 @@ def build_model(df, match_cols, args):
                         },
                    },
                   ]
-    logger.debug(f"Set constraints: {constraints}")
+    logger.debug(f"Model_Constraints||0||{constraints}")
     metadata = SingleTableMetadata()
     metadata.detect_from_dataframe(df[match_cols])
     model = GaussianCopula(metadata, enforce_min_max_values=False)
     model.add_constraints(constraints=constraints)
-    return model, evaluator
+    return model, evaluator.input_space_size, evaluator.problem_class
 
 def select_fit_data(oracle, n_data, param_columns, args):
     if (args.fit_method == 'objective-worst' and args.inverted_objective) or \
@@ -198,20 +196,22 @@ def select_fit_data(oracle, n_data, param_columns, args):
         high_range = range(mlen-half-extra_high, mlen)
         return oracle.loc[itertools.chain(low_range, high_range), param_columns]
 
-def autobudget(model, evaluator, args):
+def autobudget(model, n_data, input_space_size, problem_class, args):
     if args.skip_auto_budget:
-        logger.debug(f"Autotuning budget SKIPPED. Using --max-evals={args.max_evals} as budget")
+        logger.debug(f"Autobudget_Status||{n_data}||skipped")
+        logger.debug(f"Autobudget_Evals||{n_data}||{args.max_evals}")
         return args.max_evals
-    initial_population = evaluator.input_space_size
-    budget_conditions = [Condition({'scale': evaluator.problem_class}, num_rows=initial_population)]
-    logger.debug(f"Determining auto-budget...")
-    massive_sample = model.sample_from_conditions(budget_conditions)
+    initial_population = input_space_size
+    budget_conditions = [Condition({'scale': problem_class}, num_rows=initial_population)]
+    temp_out_name = pathlib.Path(args.output).parents[0].joinpath(f"autobudget_{n_data}")
+    massive_sample = model.sample_from_conditions(budget_conditions, output_file_path=temp_out_name)
+    temp_out_name.unlink()
     model.reset_sampling() # Ensure budgeting does not change RNG for the observed output (especially if skipped)
     sampled_pop_size = len(massive_sample.drop_duplicates())
     ideal = int(initial_population * args.budget_ideal)
     remaining_ideal = max(1, ideal - int((initial_population - sampled_pop_size) * args.budget_attrition))
     if remaining_ideal > sampled_pop_size:
-        logger.debug(f"Autotuning budget indeterminate, using --max-evals={args.max_evals} as budget")
+        logger.debug(f"Autobudget_Status||{n_data}||indeterminate")
         suggested_budget = args.max_evals
     else:
         suggested_budget = 0
@@ -221,18 +221,31 @@ def autobudget(model, evaluator, args):
             if confidence >= args.budget_confidence:
                 break
         if confidence >= args.budget_confidence:
-            logger.debug(f"Autotuning budget {suggested_budget} attains accepted confidence: {confidence:.4f} >= {args.budget_confidence}")
+            logger.debug(f"Autobudget_Status||{n_data}||accepted")
         else:
-            logger.debug(f"Autotuning budget {suggested_budget} fails to meet desired confidence {args.budget_confidence}. Best confidence: {confidence:.4f}")
+            logger.debug(f"Autobudget_Status||{n_data}||unsatisfied")
+        logger.debug(f"Autobudget_Confidence||{n_data}||{confidence:.4f}")
         if suggested_budget > args.max_evals:
-            logger.debug(f"Reducing budget {suggested_budget} to --max-evals value: {args.max_evals}")
+            logger.debug(f"Autobudget_Adjustment||{n_data}||overbudget")
             suggested_budget = args.max_evals
         elif args.always_max_evals:
-            logger.debug(f"Overriding budget to --max-evals value ({args.max_evals}) due to --always-max-evals")
+            logger.debug(f"Autobudget_Adjustment||{n_data}||always_max")
             suggested_budget = args.max_evals
+    logger.debug(f"Autobudget_Evals||{n_data}||{suggested_budget}")
     return suggested_budget
 
-def sample_seeds(model, evaluator, eval_conditions, n_data, match_cols, args):
+# I would use the evaluator's oracle_search, but this allows us to separate from the evaluator and avoid pickling it which I haven't implemented yet
+def oracle_search(oracle, row, match_cols, as_rank=True):
+    search = tuple(row)
+    n_matching_columns = (oracle[match_cols] == search).sum(1)
+    full_match_idx = np.where(n_matching_columns == len(match_cols))[0]
+    if len(full_match_idx) == 0:
+        raise ValueError(f"Failed to locate tuple {list(search)} in oracle data")
+    if as_rank:
+        return full_match_idx[0]
+    return oracle.loc[full_match_idx[0],'objective']
+
+def sample_seeds(model, oracle, eval_conditions, n_data, match_cols, args):
     sampled = []
     for sample_seed in args.sample_seed:
         out_name = pathlib.Path(args.output)
@@ -260,23 +273,25 @@ def sample_seeds(model, evaluator, eval_conditions, n_data, match_cols, args):
             model._set_random_state(sample_seed)
             # Customize output name
             out_name = out_name.parents[0].joinpath(out_name.stem+f"_seed_{sample_seed}"+out_name.suffix)
-        conditional_samples = model.sample_from_conditions(eval_conditions)
+        temp_save_name = out_name.with_name('temp_'+out_name.name)
+        conditional_samples = model.sample_from_conditions(eval_conditions, output_file_path=temp_save_name)
+        temp_save_name.unlink()
         results = pd.DataFrame([], columns=match_cols)
         for idx, row in conditional_samples.iterrows():
-            row_params = [_ for _ in row[:-1]]
-            objective = evaluator.oracle_search(row_params, as_rank=True)
+            objective = oracle_search(oracle, row, match_cols, as_rank=True)
             row_data = dict((c,d) for (c,d) in row.items())
             row_data['objective'] = objective
             results = pd.concat((results,pd.DataFrame(row_data, index=[0]))).reset_index(drop=True)
         results.to_csv(out_name, index=False)
-        logger.debug(f"{len(results)} samples saved to {out_name}")
+        logger.debug(f"Sample_Path||{n_data}||{out_name}")
+        logger.debug(f"Sample_Count||{n_data}||{len(results)}")
         sampled.append(results)
     return sampled
 
-def evaluation(oracle, sampled, args):
+def evaluation(oracle_len, n_data, sampled, args):
     success = np.zeros(len(sampled), dtype=bool)
     success_count = np.zeros(len(sampled), dtype=int)
-    target_idx_to_beat = int(round(len(oracle) * args.target, 0))
+    target_idx_to_beat = int(round(oracle_len * args.target, 0))
     for (idx, samples) in enumerate(sampled):
         if args.inverted_objective:
             on_target = np.where(samples['objective'] > target_idx_to_beat)[0]
@@ -284,17 +299,45 @@ def evaluation(oracle, sampled, args):
             on_target = np.where(samples['objective'] < target_idx_to_beat)[0]
         success_count[idx] = len(on_target)
         success[idx] = success_count[idx] >= args.hits
-    logger.debug(f"Few-shot Evaluation success count: {success_count} / {[_ for _ in map(len, sampled)]}")
+    logger.debug(f"FewShot_Success||{n_data}||{success_count}")
     return success
+
+def trial(n_data, model, oracle, param_columns, input_space_size, problem_class, args):
+    logger.debug(f"Trial_Selection_Method||{n_data}||{args.fit_method}+{'inverted-objective' if args.inverted_objective else 'objective'}")
+    # Fitting process
+    fit_data = select_fit_data(oracle, n_data, param_columns, args)
+    fit_model = deepcopy(model)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        fit_model.fit(fit_data)
+    # Budgeting process
+    budget_evals = autobudget(fit_model, n_data, input_space_size, problem_class, args)
+    # Sampling process
+    eval_conditions = [Condition({'scale': problem_class}, num_rows=budget_evals)]
+    sampled = sample_seeds(fit_model, oracle, eval_conditions, n_data, param_columns, args)
+    # Evaluate if seeds consistently hit target
+    success = evaluation(len(oracle), n_data, sampled, args)
+    if not all(success):
+        logger.debug(f"Trial_Failures||{n_data}||{sum(~success)}")
+        # Has to be done via a syncing primitive / in another way to continue supporting this
+        #if args.early_exit_on_failure:
+        #    break
 
 def main(args=None):
     args = parse(args)
-    logger.info(args.__dict__)
-    logger.info(os.getcwd())
+    logger.info(f"ArgDict||0||{args.__dict__}")
+    logger.info(f"CWD||0||{os.path.abspath(os.getcwd())}")
+    # Custom data schedule
+    if args.custom_data_schedule is not None:
+        args.custom_data_schedule = np.load(open(args.custom_data_schedule,'rb'))
+        if not np.issubdtype(args.custom_data_schedule.dtype,int):
+            raise ValueError(f"Custom data schedule must use an integer type (operate as indices), got {args.custom_data_schedule.dtype}")
     oracle = load_input(args)
     param_columns = [_ for _ in oracle.columns if _ not in ['objective','predicted','elapsed_sec']]
-    logger.debug(f"Detected these columns as learnable: {param_columns}")
-    model, evaluator = build_model(oracle, param_columns, args)
+    # Set column types for learnable columns
+    oracle = oracle.astype(dict((col,str) for col in param_columns))
+    logger.debug(f"Learnable_Columns||0||{param_columns}")
+    model, input_space_size, problem_class = build_model(oracle, param_columns, args)
     # Determine looping bounds
     data_schedule = range(2,len(oracle),1)
     if args.start_n_data is not None:
@@ -302,26 +345,14 @@ def main(args=None):
     if args.custom_data_schedule is not None:
         data_schedule = args.custom_data_schedule
     # Iteratively re-fit and re-sample on seeds
-    for n_data in data_schedule:
-        logger.debug(f"Begin trial with {n_data} data points selected by {args.fit_method}+{'inverted-objective' if args.inverted_objective else 'objective'}")
-        # Fitting process
-        fit_data = select_fit_data(oracle, n_data, param_columns, args)
-        fit_model = deepcopy(model)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            fit_model.fit(fit_data)
-        # Budgeting process
-        budget_evals = autobudget(fit_model, evaluator, args)
-        # Sampling process
-        eval_conditions = [Condition({'scale': evaluator.problem_class}, num_rows=budget_evals)]
-        sampled = sample_seeds(fit_model, evaluator, eval_conditions, n_data, param_columns, args)
-        # Evaluate if seeds consistently hit target
-        success = evaluation(oracle, sampled, args)
-        if not all(success):
-            logger.debug(f"{sum(~success)}/{len(success)} seed failures with {n_data} records")
-            if args.early_exit_on_failure:
-                break
-    logger.debug(f"Exiting on {n_data} trial")
+    with multiprocessing.Pool() as pool:
+        result_queue = []
+        for n_data in data_schedule:
+            #trial(n_data, model, oracle, param_columns, input_space_size, problem_class, args)
+            result_queue.append(pool.apply_async(trial, (n_data, model, oracle, param_columns, input_space_size, problem_class, args)))
+        for _ in result_queue:
+            _.get()
+    logger.debug(f"Exit_N_Data||0||{n_data}")
     return args
 
 if __name__ == '__main__':
