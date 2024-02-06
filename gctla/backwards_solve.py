@@ -107,6 +107,8 @@ def parse(args=None, prs=None):
         torch.manual_seed(args.fit_seed)
     if args.sample_seed is None:
         args.sample_seed = [None]
+    # Ensure directory OK for output
+    pathlib.Path(args.output).parents[0].mkdir(parents=True, exist_ok=True)
     # Instantiate log file handler
     if args.log_experiment is None:
         handler = logging.StreamHandler(sys.stdout)
@@ -284,7 +286,6 @@ def sample_seeds(model, oracle, eval_conditions, n_data, match_cols, args):
             results = pd.concat((results,pd.DataFrame(row_data, index=[0]))).reset_index(drop=True)
         results.to_csv(out_name, index=False)
         logger.debug(f"Sample_Path||{n_data}||{out_name}")
-        logger.debug(f"Sample_Count||{n_data}||{len(results)}")
         sampled.append(results)
     return sampled
 
@@ -303,7 +304,7 @@ def evaluation(oracle_len, n_data, sampled, args):
     return success
 
 def trial(n_data, model, oracle, param_columns, input_space_size, problem_class, args):
-    logger.debug(f"Trial_Selection_Method||{n_data}||{args.fit_method}+{'inverted-objective' if args.inverted_objective else 'objective'}")
+    logger.debug(f"Trial_Selection_Method||{n_data}||{args.fit_method}{'+inverted-objective' if args.inverted_objective else ''}")
     # Fitting process
     fit_data = select_fit_data(oracle, n_data, param_columns, args)
     fit_model = deepcopy(model)
