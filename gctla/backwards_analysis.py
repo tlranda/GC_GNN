@@ -78,7 +78,7 @@ def main(args=None):
         ax2 = ax.twinx()
         ax2.set_ylabel("Proportion of Successful Evals")
         budget_line = ax.plot(x_data, autobudget, linewidth=1, linestyle='--', color='orangered', label="Budget")
-        limit_line = ax.plot(x_data, [1/budget for budget in autobudget], linewidth=1, linestyle='--', color='k', label="Success")
+        limit_line = ax2.plot(x_data, [1/budget for budget in autobudget], linewidth=1, linestyle='--', color='k', label="Success")
         if args.mean_area:
             divided = autosuccess / np.broadcast_to(np.atleast_2d(autobudget).T, autosuccess.shape)
             mean = np.mean(divided, axis=1)
