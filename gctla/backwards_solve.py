@@ -40,6 +40,8 @@ logger.setLevel(logging.DEBUG)
 
 def build():
     prs = argparse.ArgumentParser(description="Use an oracle dataset to progressively determine what kind of data is necessary for 'success' in autotuning")
+    prs.add_argument("--single-process", action="store_true",
+                            help="Disable multiprocessing (useful for debugging) (default %(default)s)")
     experiment = prs.add_argument_group("Few-Shot Experiment Settings")
     experiment.add_argument("--max-evals", type=int, default=30,
                             help="Number of evals (default: %(default)s)")
@@ -69,16 +71,21 @@ def build():
     files = prs.add_argument_group("File Management")
     files.add_argument("--input-data", nargs="+", required=True,
                             help="Oracle data to concatenate together for model target")
-    files.add_argument("--input-scale", default=None,
-                            help="Specify scale if not given for input data (or override it) (default %(default)s)")
     files.add_argument("--problem-file", required=True,
                             help="Path to file that defines importable objects to represent the tuning space and plopping semantics")
     files.add_argument("--output", default="oracle_gc.csv",
                             help="Path to save results to (if --sample-seed is provided, filename will automatically be noted with each seed value) (default %(default)s)")
     files.add_argument("--log-training-dataset", default=None,
-                            help="Path to save filtered dataset to when provided (default %(default)s)")
+                            help="Path to save filtered dataset (CSV) to when provided (default %(default)s)")
     files.add_argument("--log-experiment", default=None,
-                            help="Path to save logs into when provided (default %(default)s)")
+                            help="Path to save logs (JSON) to when provided (default %(default)s)")
+    transfer = prs.add_argument_group("Transfer Settings")
+    transfer.add_argument("--input-scale", default=None,
+                            help="Specify scale if not given for input data (or override it) (default %(default)s)")
+    transfer.add_argument("--transfer-method", choices=["identity", "interpolate", "extrapolate+", "extrapolate-"], default="identity",
+                            help="Forge the scale identifiers of fitting data to simulate this kind of transfer (identity: all data matches input scale), (interpolate: use a lower and a higher data size than input scale), (extrapolate+: use two lower sizes than input scale), (extrapolate-: se two larger sizes than input scale) (default %(default)s)")
+    transfer.add_argument("--transfer-permutation", choices=["naive", "anti-naive", "shuffle"], default="naive",
+                            help="Adjust order of selected data before assigning scales (naive: lower idx goes to lower rank scale), (anti-naive: lower idx goes to higher rank scale), (shuffle: scramble idxes amongst transfer scales using fixed RNG) (default %(default)s)")
     looping = prs.add_argument_group("Iteration Controls")
     looping.add_argument("--start-n-data", type=int, default=2,
                             help="Minimum data to start with (default %(default)s)")
@@ -176,7 +183,7 @@ def build_model(df, match_cols, args):
     metadata.detect_from_dataframe(df[match_cols])
     model = GaussianCopula(metadata, enforce_min_max_values=False)
     model.add_constraints(constraints=constraints)
-    return model, evaluator.input_space_size, evaluator.problem_class
+    return model, evaluator.input_space_size, evaluator.problem_class, evaluator.dataset_lookup
 
 def select_fit_data(oracle, n_data, param_columns, args):
     if (args.fit_method == 'objective-worst' and args.inverted_objective) or \
@@ -197,6 +204,40 @@ def select_fit_data(oracle, n_data, param_columns, args):
         low_range = range(0, half+extra_low)
         high_range = range(mlen-half-extra_high, mlen)
         return oracle.loc[itertools.chain(low_range, high_range), param_columns]
+
+def adjust_transfer_scale(data, scale_dict, args):
+    current_scale = data.loc[data.index[0],'scale']
+    scale_key_list = list(scale_dict.keys())
+    current_scale = scale_key_list.index(current_scale)
+    # Scale selection
+    if args.transfer_method == "identity":
+        return data
+    elif args.transfer_method == "interpolate":
+        new_scale_low = scale_key_list[current_scale-1]
+        new_scale_high = scale_key_list[current_scale+1]
+    elif args.transfer_method == "extrapolate+":
+        new_scale_low = scale_key_list[current_scale-2]
+        new_scale_high = scale_key_list[current_scale-1]
+    elif args.transfer_method == "extrapolate-":
+        new_scale_low = scale_key_list[current_scale+1]
+        new_scale_high = scale_key_list[current_scale+2]
+    # Data order permutation
+    if args.transfer_permutation == 'naive':
+        low_idx = range(len(data)//2)
+        high_idx = range(len(data)//2,len(data))
+    elif args.transfer_permutation == 'anti-naive':
+        low_idx = range(len(data)//2,len(data))
+        high_idx = range(len(data)//2)
+    elif args.transfer_permutation == 'shuffle':
+        mask = np.concatenate((np.ones(len(data)//2), np.zeros(len(data)//2+int(len(data)%2==1))))
+        # This uses the --fit-seed adjusted RNG, ergo it should be replicable between experiments
+        np.random.shuffle(mask)
+        low_idx = np.where(mask == 0)[0]
+        high_idx = np.where(mask == 1)[0]
+    # Set scales
+    data.loc[data.index[low_idx],'scale'] = [new_scale_low] * len(low_idx)
+    data.loc[data.index[high_idx],'scale'] = [new_scale_high] * len(high_idx)
+    return data
 
 def autobudget(model, n_data, input_space_size, problem_class, args):
     if args.skip_auto_budget:
@@ -303,10 +344,11 @@ def evaluation(oracle_len, n_data, sampled, args):
     logger.debug(f"FewShot_Success||{n_data}||{success_count}")
     return success
 
-def trial(n_data, model, oracle, param_columns, input_space_size, problem_class, args):
+def trial(n_data, model, oracle, param_columns, input_space_size, problem_class, scale_dict, args):
     logger.debug(f"Trial_Selection_Method||{n_data}||{args.fit_method}{'+inverted-objective' if args.inverted_objective else ''}")
     # Fitting process
     fit_data = select_fit_data(oracle, n_data, param_columns, args)
+    fit_data = adjust_transfer_scale(fit_data, scale_dict, args)
     fit_model = deepcopy(model)
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
@@ -338,7 +380,7 @@ def main(args=None):
     # Set column types for learnable columns
     oracle = oracle.astype(dict((col,str) for col in param_columns))
     logger.debug(f"Learnable_Columns||0||{param_columns}")
-    model, input_space_size, problem_class = build_model(oracle, param_columns, args)
+    model, input_space_size, problem_class, scale_dict = build_model(oracle, param_columns, args)
     # Determine looping bounds
     data_schedule = range(2,len(oracle),1)
     if args.start_n_data is not None:
@@ -349,8 +391,11 @@ def main(args=None):
     with multiprocessing.Pool() as pool:
         result_queue = []
         for n_data in data_schedule:
-            #trial(n_data, model, oracle, param_columns, input_space_size, problem_class, args)
-            result_queue.append(pool.apply_async(trial, (n_data, model, oracle, param_columns, input_space_size, problem_class, args)))
+            trial_args = (n_data, model, oracle, param_columns, input_space_size, problem_class, scale_dict, args)
+            if args.single_process:
+                trial(*trial_args)
+            else:
+                result_queue.append(pool.apply_async(trial, trial_args))
         for _ in result_queue:
             _.get()
     logger.debug(f"Exit_N_Data||0||{n_data}")
