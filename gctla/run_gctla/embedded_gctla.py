@@ -2,13 +2,6 @@ from GC_TLA.base_problem import embedding_problem_builder
 import pathlib
 oracle_dir = pathlib.Path(__file__).parents[1].joinpath("oracles")
 
-N = 768
-embedding_input_space = [
-    ('UniformFloat',
-        {'name': f'emb_dim_{i}', 'lower': -5., 'upper': 5.}
-    ) for i in range(N)
-]
-
 input_space = [('Categorical',
     {'name': 'p0',
     'choices': ["#pragma clang loop(j2) pack array(A) allocate(malloc)", " "],
@@ -40,6 +33,13 @@ input_space = [('Categorical',
     'default_value': '256'
     }),
     ]
+N = 768
+embedding_input_space = [
+    ('UniformFloat',
+        {'name': f'emb_dim_{i}', 'lower': -5., 'upper': 5.}
+    ) for i in range(N)
+]
+input_space += embedding_input_space
 
 lookup_ival = {20: ("N", "MINI"), 60: ("S", "SMALL"), 130: ("SM", "SM"), 200: ("M", "MEDIUM"),
                600: ("ML", "ML"), 1000: ("L", "LARGE"), 2000: ("XL", "EXTRALARGE"),
