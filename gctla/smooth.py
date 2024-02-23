@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 def load(oracle_data):
     print("Begin")
     # Load dataset
-    og_df = pd.read_csv(oracle_data).sort_values(by=["objective"]).reset_index(drop=True)
+    #og_df = pd.read_csv(oracle_data).sort_values(by=["objective"]).reset_index(drop=True)
+    og_df = pd.read_csv(oracle_data).sort_values(by=["p3","p4","p1","p2","p0","p5"]).reset_index(drop=True)
     # Columns we're working with
     target_cols = [_ for _ in og_df.columns if re.match(r"p[0-9]+", _) is not None]
     print("Data loaded")
@@ -53,6 +54,7 @@ def random_forest_importance(test_size, random_state, diff_df, values_per_column
     print(f"R2 score for RandomForest: {r2}")
     rf_importance = regressor.feature_importances_ # Actual importance values
     skl_order = rf_importance.argsort() # Least-to-Most important
+    print(f"Feature importance: {' '.join([target_cols[s] for s in skl_order])}")
     return skl_order
 
 def fill_mask(blank_mask, data, values_per_column, target_cols):
@@ -71,15 +73,11 @@ def fill_mask(blank_mask, data, values_per_column, target_cols):
                 new_mask[x,lookup_idx] = True
     return new_mask
 
-def match_mask(mask, all_masks, diff_df):
-    indices = []
-    for idx in diff_df.index:
-        compare_mask = all_masks[idx]
-        # 'binary-and' each variable, if sum > 0 then there's a match on that variable's mask
-        # if the entire sum is == #variables, then it's a full match
-        if np.logical_and(compare_mask, mask).sum(axis=1).sum() == mask.shape[0]:
-            indices.append(idx)
-    return np.asarray(indices)
+def match_mask(mask, all_masks):
+    # 3D array logical and with contents of 1D array on final axis
+    n_matches_per_mask = np.logical_and(all_masks, mask).sum(axis=(2,1))
+    # Return complete matches
+    return np.where(n_matches_per_mask == mask.shape[0])[0]
 
 """
 Smoothness = as you open up towards uniform space, you should introduce _minimal_ skipping in your out-of-order matches
@@ -115,7 +113,7 @@ def prep_masks(diff_df, values_per_column, target_cols, mean_repr):
     initial_mask = fill_mask(blank_mask, mean_repr, values_per_column, target_cols)
     print("Precompute all masks")
     # Save us time calculating masks by precomputing them all once
-    all_masks = [fill_mask(blank_mask, row, values_per_column, target_cols) for (idx, row) in diff_df.iterrows()]
+    all_masks = np.asarray([fill_mask(blank_mask, row, values_per_column, target_cols) for (idx, row) in diff_df.iterrows()])
     return blank_mask, initial_mask, all_masks
 
 def jitter(mask, values_per_column, target_cols, skl_order, inplace=True):
@@ -215,8 +213,8 @@ def capacity(used_indices, lower, upper):
         current_length += 1
     return avail_dict
 
-def get_idxes_and_jitter(mask, all_masks, diff_df, values_per_column, target_cols, skl_order, iter_n, max_iter):
-    idx = match_mask(mask, all_masks, diff_df)
+def get_idxes_and_jitter(mask, all_masks, values_per_column, target_cols, skl_order, iter_n, max_iter):
+    idx = match_mask(mask, all_masks)
     try:
         jitter(mask, values_per_column, target_cols, skl_order, inplace=True)
     except IndexError:
@@ -226,7 +224,7 @@ def get_idxes_and_jitter(mask, all_masks, diff_df, values_per_column, target_col
 
 def save_iter_figure(diff_df, jitter_idx, new_jitter_idx, iteration):
     sel_fig, sel_ax = plt.subplots()
-    sel_ax.plot(range(len(diff_df)), diff_df['objective'], marker=None, linewidth=0.5)
+    sel_ax.plot(range(len(diff_df)), sorted(diff_df['objective']), marker=None, linewidth=0.5)
     sel_ax.scatter(jitter_idx, diff_df.loc[jitter_idx,'objective'], s=2, color=(0.6,0,0,0.2))
     sel_ax.scatter(new_jitter_idx.ravel(), diff_df.loc[new_jitter_idx.ravel(),'objective'], s=4)
     sel_ax.get_yaxis().set_visible(False)
@@ -302,7 +300,7 @@ def main():
     while iteration < iteration_limit:
         print(f"Iteration {iteration} uses mask {iter_mask.sum(axis=1)}")
         # These come pre-sorted, but may fill gaps in previous array
-        jitter_idx = match_mask(iter_mask, all_masks, diff_df)
+        jitter_idx = match_mask(iter_mask, all_masks)
         new_jitter_idx = np.asarray([_ for _ in jitter_idx if _ not in last_jitter_idx]).reshape((-1,1))
         print(f"Found {new_jitter_idx.shape[0]} new values")
         save_iter_figure(diff_df, jitter_idx, new_jitter_idx, iteration)
@@ -320,7 +318,7 @@ def main():
         print(f"{len(all_optimal_ranged)} / {len(last_jitter_idx)} ({100*len(all_optimal_ranged)/len(last_jitter_idx)}%) total values are optimal (top-{optimal_cutoff})")
 
         # Loop condition
-        jitter_idx, iteration = get_idxes_and_jitter(iter_mask, all_masks, diff_df, values_per_column, target_cols, skl_order, iteration, iteration_limit)
+        jitter_idx, iteration = get_idxes_and_jitter(iter_mask, all_masks, values_per_column, target_cols, skl_order, iteration, iteration_limit)
     smoothness_plot(smooth_mean, smooth_std)
 
     # Make the gif
