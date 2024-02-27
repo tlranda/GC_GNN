@@ -16,35 +16,19 @@ from sdv.constraints import ScalarRange
 # Local file, not module
 import embedded_gctla
 
+TARGET_DATA = "SOURCE" # Options: SOURCE, EXHAUSTIVE
+
+# Transfer Settings
+TRAIN_TEST_SPLIT_POINT = 580
+N_FEATURES = 6 # Options: None (all), integer > 0 for that many features
+N_INFERENCE = 2
+TARGET_ORACLE = "XL"
+
 stop_time = time.time()
 print(f"Modules loaded in {stop_time-start_time} seconds")
-start_time = stop_time
-
-EMBEDDING_DIR = pathlib.Path(__file__).parents[2].joinpath("embeddings")
-torch_range = (slice(None,None,1),slice(None,None,1)) # ALL Data
-#torch_range = (slice(None,None,1),slice(None,600,1)) # Limited Data
-
-embedding_names = np.asarray([f for f in EMBEDDING_DIR.iterdir() if str(f.name) != 'polybench_embeddings.pth'])
-def embedding_name_sorter(name):
-    parts = str(name.name).split('_')
-    return (ord(parts[2]) - ord('A'), # Letter extracted as a number for sorting
-            int(parts[3]), # Number extracted from remainder of string
-           )
-# Re-sort on key
-embedding_names = sorted(embedding_names, key=embedding_name_sorter)
-# Get associated parameters
-PARAM_CSVS = pathlib.Path(__file__).parents[1].joinpath("gc_source_tune_perf_obj")
-SIZES = "SML"
-PARAM_CSVS = [PARAM_CSVS.joinpath(f"syr2k_{size}.csv") for size in SIZES]
-PARAM_COLS = [f'p{n}' for n in range(6)]
-param_csvs = {}
-for size, p in zip(SIZES,PARAM_CSVS):
-    csv = pd.read_csv(p)
-    csv.insert(0,'source',[p.stem]*len(csv))
-    param_csvs[size] = csv.astype(str)
 
 # Construct JOINT records
-def find_parameters(name):
+def find_parameters(name, param_csvs, PARAM_COLS):
     if type(name) is not str:
         if not isinstance(name, pathlib.Path):
             raise ValueError(f"Bad Type {type(name)} must be string-like")
@@ -52,31 +36,57 @@ def find_parameters(name):
     re_data = re.match(r".*mmp_syr2k_(.*)_([0-9]+)_embeddings.pth", name).groups(0)
     return param_csvs[re_data[0]].loc[int(re_data[1]), PARAM_COLS].copy()
 
-joint_records = []
-loaded_size = None
-for idx, name in enumerate(embedding_names):
-    parameterization = find_parameters(name).values.tolist()
-    vector = torch.load(name)[torch_range]
-    if loaded_size is None:
-        loaded_size = vector.shape[1]
-    else:
-        assert loaded_size == vector.shape[1]
-    parameterization += vector.ravel().tolist()
-    joint_records.append(parameterization)
-EMBED_COLS = [f'emb_dim_{i}' for i in range(loaded_size)]
-big_df = pd.DataFrame(data=joint_records, columns=PARAM_COLS+EMBED_COLS)
+def load_and_associate_source():
+    EMBEDDING_DIR = pathlib.Path(__file__).parents[2].joinpath("embeddings")
+    #torch_range = (slice(None,None,1),slice(None,None,1)) # ALL Data
+    torch_range = (slice(None,None,1),slice(None,N_FEATURES,1)) # Limited Data
+
+    embedding_names = np.asarray([f for f in EMBEDDING_DIR.iterdir() if str(f.name) != 'polybench_embeddings.pth'])
+    def embedding_name_sorter(name):
+        parts = str(name.name).split('_')
+        return (ord(parts[2]) - ord('A'), # Letter extracted as a number for sorting
+                int(parts[3]), # Number extracted from remainder of string
+               )
+    # Re-sort on key
+    embedding_names = sorted(embedding_names, key=embedding_name_sorter)
+    # Get associated parameters
+    PARAM_CSVS = pathlib.Path(__file__).parents[1].joinpath("gc_source_tune_perf_obj")
+    SIZES = "SML"
+    PARAM_CSVS = [PARAM_CSVS.joinpath(f"syr2k_{size}.csv") for size in SIZES]
+    PARAM_COLS = [f'p{n}' for n in range(6)]
+    param_csvs = {}
+    for size, p in zip(SIZES,PARAM_CSVS):
+        csv = pd.read_csv(p)
+        csv.insert(0,'source',[p.stem]*len(csv))
+        param_csvs[size] = csv.astype(str)
+
+    joint_records = []
+    loaded_size = None
+    for idx, name in enumerate(embedding_names):
+        parameterization = find_parameters(name, param_csvs, PARAM_COLS).values.tolist()
+        vector = torch.load(name)[torch_range]
+        if loaded_size is None:
+            loaded_size = vector.shape[1]
+        else:
+            assert loaded_size == vector.shape[1]
+        parameterization += vector.ravel().tolist()
+        joint_records.append(parameterization)
+    EMBED_COLS = [f'emb_dim_{i}' for i in range(loaded_size)]
+    big_df = pd.DataFrame(data=joint_records, columns=PARAM_COLS+EMBED_COLS)
+    return big_df, EMBED_COLS
+
+start_time = stop_time
+if TARGET_DATA == "SOURCE":
+    big_df, EMBED_COLS = load_and_associate_source()
+elif TARGET_DATA == "EXHAUSTIVE":
+    big_df, EMBED_COLS = load_and_associate_exhaustive()
 stop_time = time.time()
 print(f"Loaded data: {big_df.shape} (time: {stop_time-start_time})")
 start_time = stop_time
 
 # Make a train-test split
-TRAIN_TEST_SPLIT_POINT = 580
 train_data = big_df.loc[:TRAIN_TEST_SPLIT_POINT,]
 test_data = big_df.loc[TRAIN_TEST_SPLIT_POINT:,]
-
-# Transfer Settings
-N_INFERENCE = 2
-TARGET_ORACLE = "XL"
 
 # Conditions and Constraints for SDV
 lookup = getattr(embedded_gctla, "lookup")
