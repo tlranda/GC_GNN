@@ -6,7 +6,7 @@ NUMPY_SEED = 1
 np.random.seed(NUMPY_SEED)
 import pandas as pd
 import torch
-import pathlib, warnings, time, re
+import pathlib, warnings, time, re, pickle
 import ConfigSpace as CS, ConfigSpace.hyperparameters as CSH
 from ConfigSpace import ConfigurationSpace, EqualsCondition
 from sdv.single_table import GaussianCopulaSynthesizer as GaussianCopula
@@ -16,12 +16,13 @@ from sdv.constraints import ScalarRange
 # Local file, not module
 import embedded_gctla
 
-TARGET_DATA = "SOURCE" # Options: SOURCE, EXHAUSTIVE
+TARGET_DATA = "EXHAUSTIVE" # Options: SOURCE, EXHAUSTIVE
 
 # Transfer Settings
-TRAIN_TEST_SPLIT_POINT = 580
+TRAIN_TEST_SPLIT_POINT = 10648 # 580
 N_FEATURES = 6 # Options: None (all), integer > 0 for that many features
 N_INFERENCE = 2
+EXHAUSTIVE_SOURCE_ORACLE = "SM"
 TARGET_ORACLE = "XL"
 
 stop_time = time.time()
@@ -35,6 +36,37 @@ def find_parameters(name, param_csvs, PARAM_COLS):
         name = str(name)
     re_data = re.match(r".*mmp_syr2k_(.*)_([0-9]+)_embeddings.pth", name).groups(0)
     return param_csvs[re_data[0]].loc[int(re_data[1]), PARAM_COLS].copy()
+
+def load_and_associate_exhaustive():
+    full_tensors = np.load(pathlib.Path(__file__).parents[2].joinpath("sorted_tensors_syr2k_exhaustive_data.pkl"))
+    tensor_names = np.load(pathlib.Path(__file__).parents[2].joinpath("sorted_tensors_syr2k_exhaustive_names.pkl"))
+    PARAM_CSVS = pathlib.Path(__file__).parents[1].joinpath("oracles")
+    SIZES = [EXHAUSTIVE_SOURCE_ORACLE, TARGET_ORACLE]
+    tensor_names_lookup = dict((name, [idx for (idx,val) in enumerate(tensor_names) if name in val])
+                               for name in SIZES)
+    PARAM_CSVS = [PARAM_CSVS.joinpath(_).joinpath('all_'+_+'.csv') for _ in SIZES]
+    PARAM_COLS = [f'p{n}' for n in range(6)]
+    param_csvs = {}
+    for size, p in zip(SIZES, PARAM_CSVS):
+        csv = pd.read_csv(p)
+        csv.insert(0, 'source', [p.stem]*len(csv))
+        param_csvs[size] = csv.astype(str)
+
+    joint_records = []
+    loaded_size = None
+    for size in SIZES:
+        for idx, t_idx in enumerate(tensor_names_lookup[size]):
+            parameterization = param_csvs[size].loc[idx, PARAM_COLS].copy().values.tolist()
+            vector = full_tensors[t_idx,0,:N_FEATURES]
+            if loaded_size is None:
+                loaded_size = vector.shape[0]
+            else:
+                assert loaded_size == vector.shape[0]
+            parameterization += vector.tolist()
+            joint_records.append(parameterization)
+    EMBED_COLS = [f'emb_dim_{i}' for i in range(loaded_size)]
+    big_df = pd.DataFrame(data=joint_records, columns=PARAM_COLS+EMBED_COLS)
+    return big_df, EMBED_COLS
 
 def load_and_associate_source():
     EMBEDDING_DIR = pathlib.Path(__file__).parents[2].joinpath("embeddings")
