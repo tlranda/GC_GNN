@@ -45,5 +45,5 @@ lookup_ival = {20: ("N", "MINI"), 60: ("S", "SMALL"), 130: ("SM", "SM"), 200: ("
                600: ("ML", "ML"), 1000: ("L", "LARGE"), 2000: ("XL", "EXTRALARGE"),
                3000: ("H", "HUGE"),}
 oracles = {"SM": oracle_dir.joinpath("SM","all_SM.csv"), "XL": oracle_dir.joinpath("XL","all_XL.csv")}
-__getattr__ = embedding_problem_builder(lookup_ival, input_space, None, oracles=oracles)
+__getattr__ = embedding_problem_builder(lookup_ival, input_space, None, oracles=oracles, silent=True)
 

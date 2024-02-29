@@ -5,8 +5,10 @@ import numpy as np
 NUMPY_SEED = 1
 np.random.seed(NUMPY_SEED)
 import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
 import torch
-import pathlib, warnings, time, re, pickle
+import pathlib, warnings, time, re, multiprocessing
 import ConfigSpace as CS, ConfigSpace.hyperparameters as CSH
 from ConfigSpace import ConfigurationSpace, EqualsCondition
 from sdv.single_table import GaussianCopulaSynthesizer as GaussianCopula
@@ -20,8 +22,8 @@ TARGET_DATA = "EXHAUSTIVE" # Options: SOURCE, EXHAUSTIVE
 
 # Transfer Settings
 TRAIN_TEST_SPLIT_POINT = 10648 # 580
-N_FEATURES = 6 # Options: None (all), integer > 0 for that many features
-N_INFERENCE = 2
+N_FEATURES = 100 # Options: None (all), integer > 0 for that many features
+N_INFERENCE = 1
 EXHAUSTIVE_SOURCE_ORACLE = "SM"
 TARGET_ORACLE = "XL"
 
@@ -47,10 +49,13 @@ def load_and_associate_exhaustive():
     PARAM_CSVS = [PARAM_CSVS.joinpath(_).joinpath('all_'+_+'.csv') for _ in SIZES]
     PARAM_COLS = [f'p{n}' for n in range(6)]
     param_csvs = {}
+    rankings = []
     for size, p in zip(SIZES, PARAM_CSVS):
         csv = pd.read_csv(p)
         csv.insert(0, 'source', [p.stem]*len(csv))
+        rankings += np.argsort(csv['objective']).tolist()
         param_csvs[size] = csv.astype(str)
+    rankings = np.asarray(rankings)
 
     joint_records = []
     loaded_size = None
@@ -66,7 +71,7 @@ def load_and_associate_exhaustive():
             joint_records.append(parameterization)
     EMBED_COLS = [f'emb_dim_{i}' for i in range(loaded_size)]
     big_df = pd.DataFrame(data=joint_records, columns=PARAM_COLS+EMBED_COLS)
-    return big_df, EMBED_COLS
+    return big_df, EMBED_COLS, rankings
 
 def load_and_associate_source():
     EMBEDDING_DIR = pathlib.Path(__file__).parents[2].joinpath("embeddings")
@@ -87,10 +92,13 @@ def load_and_associate_source():
     PARAM_CSVS = [PARAM_CSVS.joinpath(f"syr2k_{size}.csv") for size in SIZES]
     PARAM_COLS = [f'p{n}' for n in range(6)]
     param_csvs = {}
+    rankings = []
     for size, p in zip(SIZES,PARAM_CSVS):
         csv = pd.read_csv(p)
         csv.insert(0,'source',[p.stem]*len(csv))
+        rankings += np.argsort(csv['objective']).tolist()
         param_csvs[size] = csv.astype(str)
+    rankings = np.asarray(rankings)
 
     joint_records = []
     loaded_size = None
@@ -105,20 +113,22 @@ def load_and_associate_source():
         joint_records.append(parameterization)
     EMBED_COLS = [f'emb_dim_{i}' for i in range(loaded_size)]
     big_df = pd.DataFrame(data=joint_records, columns=PARAM_COLS+EMBED_COLS)
-    return big_df, EMBED_COLS
+    return big_df, EMBED_COLS, rankings
 
 start_time = stop_time
 if TARGET_DATA == "SOURCE":
-    big_df, EMBED_COLS = load_and_associate_source()
+    big_df, EMBED_COLS, rankings = load_and_associate_source()
 elif TARGET_DATA == "EXHAUSTIVE":
-    big_df, EMBED_COLS = load_and_associate_exhaustive()
+    big_df, EMBED_COLS, rankings = load_and_associate_exhaustive()
 stop_time = time.time()
 print(f"Loaded data: {big_df.shape} (time: {stop_time-start_time})")
 start_time = stop_time
 
 # Make a train-test split
 train_data = big_df.loc[:TRAIN_TEST_SPLIT_POINT,]
+train_obj = rankings[:TRAIN_TEST_SPLIT_POINT]
 test_data = big_df.loc[TRAIN_TEST_SPLIT_POINT:,]
+test_obj = rankings[TRAIN_TEST_SPLIT_POINT:]
 
 # Conditions and Constraints for SDV
 lookup = getattr(embedded_gctla, "lookup")
@@ -151,28 +161,76 @@ print(f"Model fit (time: {stop_time-start_time})")
 start_time = stop_time
 warnings.simplefilter('default')
 # Inference
-generated_embeddings = model.sample_from_conditions(conditions)
+#generated_embeddings = model.sample_from_conditions(conditions)
+def sample_slice(model, conditions, indices):
+    temp_out_name = pathlib.Path(f".sample.csv.tmp_{indices}")
+    generated = model.sample_from_conditions(conditions, output_file_path=temp_out_name)
+    temp_out_name.unlink()
+    return (indices, generated)
+
+SLICE_INTERVAL = 100
+SLICE_LIMIT = len(conditions)
+with multiprocessing.Pool() as pool:
+    results_queue = []
+    generated_embeddings = [0 for _ in range(SLICE_LIMIT)]
+    for start_idx in range(0, SLICE_LIMIT, SLICE_INTERVAL):
+        max_idx = min(start_idx+SLICE_INTERVAL, SLICE_LIMIT)
+        idx_slice = slice(start_idx, max_idx)
+        args = (model, conditions[idx_slice], idx_slice)
+        results_queue.append(pool.apply_async(sample_slice, args))
+    for result in results_queue:
+        idx_slice, generation = result.get()
+        slice_as_range = range(idx_slice.start, idx_slice.stop, idx_slice.step if idx_slice.step is not None else 1)
+        for (idx, (_,series)) in zip(slice_as_range, generation.iterrows()):
+            generated_embeddings[idx] = series
+    generated_embeddings = pd.DataFrame(generated_embeddings)
+generated_embeddings.to_csv('generated.csv')
 stop_time = time.time()
 print(f"{len(generated_embeddings)} inferences made in {stop_time-start_time}")
 
+def get_rank(problem, pdict, idx):
+    return (idx, problem.objective(pdict, as_rank=True))
+
+start_time = stop_time
 # Evaluate
-"""
-If we could look up embeddings, this is how we'd do it:
-Currently, you call problem.objective(problem_space_dict) to look up the problem in the oracle
-However, the space dict must be in terms of the original search space, not as an embedding
-We will navigate this bridge later
-"""
-"""
-problem = getattr(embedded_gctla, f"oracle_{TARGET_ORACLE}")
-potential_configuration = {
-    "p0": "#pragma clang loop(j2) pack array(A) allocate(malloc)",
-    "p1": " ",
-    "p2": " ",
-    "p3": "32",
-    "p4": "128",
-    "p5": "4",
-}
-objective_val = problem.objective(potential_configuration)
-print(objective_val)
-"""
+if TARGET_DATA == "EXHAUSTIVE":
+    problem = getattr(embedded_gctla, f"oracle_{TARGET_ORACLE}")
+    # Drop embedding columns for objective lookups here
+    lookup_param_cols = [_ for _ in generated_embeddings if not _.startswith("emb_dim_")]
+    problem.params = lookup_param_cols
+    problem.n_params = len(lookup_param_cols)
+    generated_objectives = np.zeros_like(test_obj)
+    import tqdm
+    """
+    results_queue = []
+    with multiprocessing.Pool() as pool:
+        for (idx,generated_param) in tqdm.tqdm(generated_embeddings.iterrows(),total=len(generated_embeddings)):
+            param_dict = dict((k,generated_param[k]) for k in lookup_param_cols)
+            args = (problem, param_dict, idx)
+            results_queue.append(pool.apply_async(get_rank, args))
+    for result in tqdm.tqdm(results_queue):
+        (idx, rank) = result.get()
+        generated_objectives[idx] = rank
+    """
+    for (idx,generated_param) in tqdm.tqdm(generated_embeddings.iterrows(),total=len(generated_embeddings)):
+        param_dict = dict((k,generated_param[k]) for k in lookup_param_cols)
+        generated_objectives[idx] = problem.objective(param_dict, as_rank=True, without_embed=True)
+    with open('original_ranks.npy','wb') as orig_ranks:
+        np.save(orig_ranks,test_obj)
+    with open('generated_ranks.npy','wb') as generated_ranks:
+        np.save(generated_ranks,generated_objectives)
+stop_time = time.time()
+print(f"Reranked inferences in {stop_time-start_time}")
+
+start_time = stop_time
+fig, ax = plt.subplots()
+reorder = np.argsort(test_obj)
+x_range = range(test_obj.shape[0])
+ax.plot(x_range, test_obj[reorder], label="True rank")
+ax.scatter(x_range, generated_objectives[reorder], s=1, label="Generated rank", color='tab:orange')
+ax.set_title("{TARGET_DATA} with {N_FEATURES} features")
+ax.legend()
+fig.savefig("rankings.png", dpi=200)
+stop_time = time.time()
+print("Plotted in {stop_time-start_time}")
 
