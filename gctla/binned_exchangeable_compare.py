@@ -90,7 +90,7 @@ def lookup_ranks(rankable, match_columns, lookup, idx_range=None):
     lookup_strs = lookup[match_columns].astype(str)
     rank_strs = rankable[match_columns].astype(str)
     if idx_range is None:
-        idx_range = range(len(rank_str))
+        idx_range = range(len(rank_strs))
     reranking = -1 * np.ones(len(idx_range), dtype=int)
     r_idx = 0
     for idx in tqdm(idx_range):
@@ -105,10 +105,26 @@ def lookup_ranks(rankable, match_columns, lookup, idx_range=None):
 def get_match_cols(df):
     return [_ for _ in df.columns if _ not in ['predicted','elapsed_sec','objective','LoadOrder']]
 
+SIZES = {'SM': 130,
+         'ML': 600,
+         'XL': 2000,
+         'S': 60,
+         'M': 200,
+         'L': 1000}
+SIZES_LOOKUP = [f'_{size}_' for size in SIZES.keys()] + [f'_{size}' for size in SIZES.keys()]
 def load_set(fnames, relabel, matching_columns=None):
     loaded = []
     for fname in fnames:
         df = pd.read_csv(fname)
+        if 'size' not in df.columns:
+            # Try to indicate size
+            indicator = None
+            for size in SIZES_LOOKUP:
+                if size in fname:
+                    indicator = SIZES[size.lstrip('_').rstrip('_')]
+                    break
+            if indicator is not None:
+                df.insert(0, 'size', [indicator] * len(df.index))
         # Ensure consistency for column-based matching lookups to succeed
         candidate_match_columns = get_match_cols(df)
         if matching_columns is None:
