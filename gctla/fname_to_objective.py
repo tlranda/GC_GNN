@@ -24,6 +24,12 @@ def parse(args=None, prs=None):
 # Prefer stricter match with two underscores, then reverse order for longer strings on weaker match
 SIZES = ['_S_','_M_','_L_','_SM_','_XL_']
 SIZES.extend([s[:-1] for s in SIZES[::-1]])
+SIZE_VALUES =  {'SM': 130,
+                'ML': 600,
+                'XL': 2000,
+                'S': 60,
+                'M': 200,
+                'L': 1000}
 def identify_size_from_name(name):
     for size in SIZES:
         if size in name:
@@ -59,15 +65,19 @@ def convert(from_name, to_name, oracles):
     injection_columns = [col for col in list(oracles.values())[0]]
     for col in injection_columns[::-1]:
         from_df.insert(0, col, [None for _ in from_df.index])
+    # Ensure size is preserved
+    if 'size' not in from_df.columns:
+        from_df.insert(0, 'size', [None] * len(from_df.index))
     # Retrieve correct parameters and override in dataframe
     for idx, row in from_df.iterrows():
         size = identify_size_from_name(row['filename'])
         loc_row = identify_row_from_name(row['filename'])
         associated_data = oracles[size].loc[loc_row, injection_columns]
         from_df.loc[idx, injection_columns] = associated_data
+        from_df.loc[idx, 'size'] = SIZE_VALUES[size]
     # Drop filenames now that we're done with them
     from_df.drop(columns=['filename'], inplace=True)
-    from_df.to_csv(to_name)
+    from_df.to_csv(to_name, index=False)
 
 def main(args=None):
     args = parse(args)
