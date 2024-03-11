@@ -9,23 +9,27 @@ import matplotlib
 import matplotlib.pyplot as plt
 import torch
 import pathlib, warnings, time, re, multiprocessing
+import copy
 import ConfigSpace as CS, ConfigSpace.hyperparameters as CSH
-from ConfigSpace import ConfigurationSpace, EqualsCondition
+from ConfigSpace import ConfigurationSpace
 from sdv.single_table import GaussianCopulaSynthesizer as GaussianCopula
 from sdv.metadata import SingleTableMetadata
 from sdv.sampling.tabular import Condition
 from sdv.constraints import ScalarRange
-# Local file, not module
-import embedded_gctla
 
 TARGET_DATA = "EXHAUSTIVE" # Options: SOURCE, EXHAUSTIVE
 
 # Transfer Settings
-TRAIN_TEST_SPLIT_POINT = 10648 # 580
-N_FEATURES = 100 # Options: None (all), integer > 0 for that many features
+# Ranges are start:start+stop
+TRAIN_SPLIT_START = 0
+TRAIN_SPLIT_STOP = 10648
+TEST_SPLIT_START = 10648
+TEST_SPLIT_STOP = 400
+N_FEATURES = None # Options: None (all), integer > 0 for that many features
 N_INFERENCE = 1
 EXHAUSTIVE_SOURCE_ORACLE = "SM"
 TARGET_ORACLE = "XL"
+precomputed_embeddings = "generated.csv"
 
 stop_time = time.time()
 print(f"Modules loaded in {stop_time-start_time} seconds")
@@ -42,6 +46,16 @@ def find_parameters(name, param_csvs, PARAM_COLS):
 def load_and_associate_exhaustive():
     full_tensors = np.load(pathlib.Path(__file__).parents[2].joinpath("sorted_tensors_syr2k_exhaustive_data.pkl"))
     tensor_names = np.load(pathlib.Path(__file__).parents[2].joinpath("sorted_tensors_syr2k_exhaustive_names.pkl"))
+    # Purge polybench if present
+    remove_queue = []
+    for idx, name in enumerate(tensor_names):
+        if name == 'polybench.pth':
+            remove_queue.append(idx)
+    full_tensors = full_tensors[np.nonzero([_ not in remove_queue for _ in np.arange(full_tensors.shape[0])])]
+    tensor_names = tensor_names[np.nonzero([_ not in remove_queue for _ in np.arange(tensor_names.shape[0])])]
+    global N_FEATURES
+    if N_FEATURES is None:
+        N_FEATURES = full_tensors.shape[1]
     PARAM_CSVS = pathlib.Path(__file__).parents[1].joinpath("oracles")
     SIZES = [EXHAUSTIVE_SOURCE_ORACLE, TARGET_ORACLE]
     tensor_names_lookup = dict((name, [idx for (idx,val) in enumerate(tensor_names) if name in val])
@@ -125,96 +139,110 @@ print(f"Loaded data: {big_df.shape} (time: {stop_time-start_time})")
 start_time = stop_time
 
 # Make a train-test split
-train_data = big_df.loc[:TRAIN_TEST_SPLIT_POINT,]
-train_obj = rankings[:TRAIN_TEST_SPLIT_POINT]
-test_data = big_df.loc[TRAIN_TEST_SPLIT_POINT:,]
-test_obj = rankings[TRAIN_TEST_SPLIT_POINT:]
+# For some reason, pandas includes the end of the slice?? WTF
+train_data = big_df.loc[TRAIN_SPLIT_START:TRAIN_SPLIT_START+TRAIN_SPLIT_STOP-1,]
+train_obj = rankings[TRAIN_SPLIT_START:TRAIN_SPLIT_START+TRAIN_SPLIT_STOP]
+test_data = big_df.loc[TEST_SPLIT_START:TEST_SPLIT_START+TEST_SPLIT_STOP-1,]
+test_obj = rankings[TEST_SPLIT_START:TEST_SPLIT_START+TEST_SPLIT_STOP]
+print(f"Train data {train_data.shape}, train objective {train_obj.shape}")
+print(f"Test data {test_data.shape}, test objective {test_obj.shape}")
 
-# Conditions and Constraints for SDV
-lookup = getattr(embedded_gctla, "lookup")
-conditions = []
-for idx, rowdata in test_data.iterrows():
-    conditions.append(Condition(dict((col, rowdata[col]) for col in EMBED_COLS), num_rows=N_INFERENCE))
-constraints = []
-"""
-{'constraint_class': 'ScalarRange',
-'constraint_parameters': {
-    'column_name': 'input',
-    'low_value': min(lookup.values()),
-    'high_value': max(lookup.values()),
-    'strict_boundaries': False,},
-}
-"""
-stop_time = time.time()
-print(f"Transfer setup (time: {stop_time-start_time})")
-start_time = stop_time
+from GC_TLA.implementations import embedded
+problem = getattr(embedded, f"embedded_{TARGET_ORACLE}_{N_FEATURES}")
+problem.silent = True
+if precomputed_embeddings is None:
+    # Conditions and Constraints for SDV
+    conditions = []
+    for idx, rowdata in test_data.iterrows():
+        conditions.append(Condition(dict((col, rowdata[col]) for col in EMBED_COLS), num_rows=N_INFERENCE))
+    min_const, max_const = problem.problem_mapping.app_scale_range
+    constraints = [] #ScalarRange(column_name='input', low_value=min_const, high_value=max_const, strict_boundaries=False)]
+    stop_time = time.time()
+    print(f"Transfer setup (time: {stop_time-start_time})")
+    start_time = stop_time
 
-# Set up SDV
-metadata = SingleTableMetadata()
-metadata.detect_from_dataframe(train_data)
-model = GaussianCopula(metadata, enforce_min_max_values=False)
-model.add_constraints(constraints=constraints)
-warnings.simplefilter('ignore')
-model.fit(train_data)
-stop_time = time.time()
-print(f"Model fit (time: {stop_time-start_time})")
-start_time = stop_time
-warnings.simplefilter('default')
-# Inference
-#generated_embeddings = model.sample_from_conditions(conditions)
-def sample_slice(model, conditions, indices):
-    temp_out_name = pathlib.Path(f".sample.csv.tmp_{indices}")
-    generated = model.sample_from_conditions(conditions, output_file_path=temp_out_name)
-    temp_out_name.unlink()
-    return (indices, generated)
+    # Set up SDV
+    metadata = SingleTableMetadata()
+    metadata.detect_from_dataframe(train_data)
+    model = GaussianCopula(metadata, enforce_min_max_values=False)
+    model.add_constraints(constraints=constraints)
+    warnings.simplefilter('ignore')
+    model.fit(train_data)
+    stop_time = time.time()
+    print(f"Model fit (time: {stop_time-start_time})")
+    start_time = stop_time
+    warnings.simplefilter('default')
+    # Inference
+    #generated_embeddings = model.sample_from_conditions(conditions)
+    def sample_slice(model, conditions, indices):
+        temp_out_name = pathlib.Path(f".sample.csv.tmp_{indices}")
+        generated = model.sample_from_conditions(conditions, output_file_path=temp_out_name)
+        temp_out_name.unlink()
+        return (indices, generated)
 
-SLICE_INTERVAL = 100
-SLICE_LIMIT = len(conditions)
-with multiprocessing.Pool() as pool:
-    results_queue = []
-    generated_embeddings = [0 for _ in range(SLICE_LIMIT)]
-    for start_idx in range(0, SLICE_LIMIT, SLICE_INTERVAL):
-        max_idx = min(start_idx+SLICE_INTERVAL, SLICE_LIMIT)
-        idx_slice = slice(start_idx, max_idx)
-        args = (model, conditions[idx_slice], idx_slice)
-        results_queue.append(pool.apply_async(sample_slice, args))
-    for result in results_queue:
-        idx_slice, generation = result.get()
-        slice_as_range = range(idx_slice.start, idx_slice.stop, idx_slice.step if idx_slice.step is not None else 1)
-        for (idx, (_,series)) in zip(slice_as_range, generation.iterrows()):
-            generated_embeddings[idx] = series
-    generated_embeddings = pd.DataFrame(generated_embeddings)
-generated_embeddings.to_csv('generated.csv')
-stop_time = time.time()
-print(f"{len(generated_embeddings)} inferences made in {stop_time-start_time}")
+    SLICE_INTERVAL = 10
+    SLICE_LIMIT = len(conditions)
+    with multiprocessing.Pool() as pool:
+        results_queue = []
+        generated_embeddings = [0 for _ in range(SLICE_LIMIT)]
+        for start_idx in range(0, SLICE_LIMIT, SLICE_INTERVAL):
+            max_idx = min(start_idx+SLICE_INTERVAL, SLICE_LIMIT)
+            idx_slice = slice(start_idx, max_idx)
+            args = (model, conditions[idx_slice], idx_slice)
+            results_queue.append(pool.apply_async(sample_slice, args))
+        for result in results_queue:
+            idx_slice, generation = result.get()
+            slice_as_range = range(idx_slice.start, idx_slice.stop, idx_slice.step if idx_slice.step is not None else 1)
+            for (idx, (_,series)) in zip(slice_as_range, generation.iterrows()):
+                generated_embeddings[idx] = series
+        generated_embeddings = pd.DataFrame(generated_embeddings).reset_index(drop=True)
+    generated_embeddings.to_csv('generated.csv', index=False)
+    stop_time = time.time()
+    print(f"{len(generated_embeddings)} inferences made in {stop_time-start_time}")
+else:
+    start_time = stop_time
+    generated_embeddings = pd.read_csv(precomputed_embeddings).astype(str)
+    stop_time = time.time()
+    print(f"Reloaded {len(generated_embeddings)} inferences from {precomputed_embeddings} in {stop_time-start_time}")
 
 def get_rank(problem, pdict, idx):
-    return (idx, problem.objective(pdict, as_rank=True))
+    #print(f'Produce {idx}')
+    try:
+        rank = problem.evaluateConfiguration(pdict, use_oracle=True, as_rank=True, single_return=True)
+    except:
+        return (None,None)
+    return (idx, rank)
 
 start_time = stop_time
 # Evaluate
 if TARGET_DATA == "EXHAUSTIVE":
-    problem = getattr(embedded_gctla, f"oracle_{TARGET_ORACLE}")
     # Drop embedding columns for objective lookups here
     lookup_param_cols = [_ for _ in generated_embeddings if not _.startswith("emb_dim_")]
-    problem.params = lookup_param_cols
-    problem.n_params = len(lookup_param_cols)
     generated_objectives = np.zeros_like(test_obj)
     import tqdm
-    """
     results_queue = []
+    """
+    print("Make async pool")
     with multiprocessing.Pool() as pool:
-        for (idx,generated_param) in tqdm.tqdm(generated_embeddings.iterrows(),total=len(generated_embeddings)):
-            param_dict = dict((k,generated_param[k]) for k in lookup_param_cols)
-            args = (problem, param_dict, idx)
+        for (idx,generated_param) in generated_embeddings.iterrows():
+            param_dict = dict((k.upper(),generated_param[k]) for k in lookup_param_cols)
+            args = copy.deepcopy((problem, param_dict, idx))
             results_queue.append(pool.apply_async(get_rank, args))
-    for result in tqdm.tqdm(results_queue):
+            time.sleep(0.05)
+    print("Async pool created")
+    #for result in tqdm.tqdm(results_queue):
+    for result in results_queue:
         (idx, rank) = result.get()
-        generated_objectives[idx] = rank
+        if idx is not None:
+            generated_objectives[idx] = rank
+            #print(f'Fetched {idx}')
+    print("Done")
     """
     for (idx,generated_param) in tqdm.tqdm(generated_embeddings.iterrows(),total=len(generated_embeddings)):
-        param_dict = dict((k,generated_param[k]) for k in lookup_param_cols)
-        generated_objectives[idx] = problem.objective(param_dict, as_rank=True, without_embed=True)
+        param_dict = dict((k.upper(),generated_param[k]) for k in lookup_param_cols)
+        generated_objectives[idx] = problem.evaluateConfiguration(param_dict, use_oracle=True, as_rank=True, single_return=True)
+        #print(f'Produce and fetch {idx}')
+    #"""
     with open('original_ranks.npy','wb') as orig_ranks:
         np.save(orig_ranks,test_obj)
     with open('generated_ranks.npy','wb') as generated_ranks:
