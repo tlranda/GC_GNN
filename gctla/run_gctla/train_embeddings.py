@@ -7,6 +7,7 @@ np.random.seed(NUMPY_SEED)
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+import tqdm
 import torch
 import pathlib, warnings, time, re, multiprocessing
 import copy
@@ -17,19 +18,25 @@ from sdv.metadata import SingleTableMetadata
 from sdv.sampling.tabular import Condition
 from sdv.constraints import ScalarRange
 
-TARGET_DATA = "EXHAUSTIVE" # Options: SOURCE, EXHAUSTIVE
-
 # Transfer Settings
+print("SETTINGS:")
+TARGET_DATA = "EXHAUSTIVE" # Options: SOURCE, EXHAUSTIVE
 # Ranges are start:start+stop
 TRAIN_SPLIT_START = 0
 TRAIN_SPLIT_STOP = 10648
 TEST_SPLIT_START = 10648
-TEST_SPLIT_STOP = 400
-N_FEATURES = None # Options: None (all), integer > 0 for that many features
+TEST_SPLIT_STOP = 10648
+# Options for N_FEATURES : None (all), integer > 0 for that many features
+N_FEATURES = None
 N_INFERENCE = 1
 EXHAUSTIVE_SOURCE_ORACLE = "SM"
 TARGET_ORACLE = "XL"
-precomputed_embeddings = "generated.csv"
+FORCE_RECOMPUTE_EMBEDDINGS = False
+FORCE_REFIT_MODEL = False
+# Display values by reading array once
+just_once = locals()
+print("\n".join([f"{attr}: {just_once[attr]}" for attr in ["TARGET_DATA","TRAIN_SPLIT_START","TRAIN_SPLIT_STOP","TEST_SPLIT_START","TEST_SPLIT_STOP","N_FEATURES","N_INFERENCE","EXHAUSTIVE_SOURCE_ORACLE","TARGET_ORACLE","FORCE_RECOMPUTE_EMBEDDINGS","FORCE_REFIT_MODEL"]]))
+del just_once
 
 stop_time = time.time()
 print(f"Modules loaded in {stop_time-start_time} seconds")
@@ -55,7 +62,8 @@ def load_and_associate_exhaustive():
     tensor_names = tensor_names[np.nonzero([_ not in remove_queue for _ in np.arange(tensor_names.shape[0])])]
     global N_FEATURES
     if N_FEATURES is None:
-        N_FEATURES = full_tensors.shape[1]
+        N_FEATURES = full_tensors.shape[2]
+        print(f"Redefine N_FEATURES based on loaded data: {N_FEATURES}")
     PARAM_CSVS = pathlib.Path(__file__).parents[1].joinpath("oracles")
     SIZES = [EXHAUSTIVE_SOURCE_ORACLE, TARGET_ORACLE]
     tensor_names_lookup = dict((name, [idx for (idx,val) in enumerate(tensor_names) if name in val])
@@ -138,6 +146,10 @@ stop_time = time.time()
 print(f"Loaded data: {big_df.shape} (time: {stop_time-start_time})")
 start_time = stop_time
 
+if FORCE_RECOMPUTE_EMBEDDINGS:
+    precomputed_embeddings = None
+else:
+    precomputed_embeddings = f"generated_{N_FEATURES}.csv"
 # Make a train-test split
 # For some reason, pandas includes the end of the slice?? WTF
 train_data = big_df.loc[TRAIN_SPLIT_START:TRAIN_SPLIT_START+TRAIN_SPLIT_STOP-1,]
@@ -150,7 +162,17 @@ print(f"Test data {test_data.shape}, test objective {test_obj.shape}")
 from GC_TLA.implementations import embedded
 problem = getattr(embedded, f"embedded_{TARGET_ORACLE}_{N_FEATURES}")
 problem.silent = True
-if precomputed_embeddings is None:
+# Inference
+#generated_embeddings = model.sample_from_conditions(conditions)
+def sample_slice(model, conditions, indices):
+    temp_out_name = pathlib.Path(f".sample.csv.tmp_{indices}")
+    warnings.simplefilter('ignore')
+    generated = model.sample_from_conditions(conditions, output_file_path=temp_out_name)
+    warnings.simplefilter('default')
+    temp_out_name.unlink()
+    return (indices, generated)
+
+if precomputed_embeddings is None or not pathlib.Path(precomputed_embeddings).exists():
     # Conditions and Constraints for SDV
     conditions = []
     for idx, rowdata in test_data.iterrows():
@@ -162,23 +184,27 @@ if precomputed_embeddings is None:
     start_time = stop_time
 
     # Set up SDV
+    expected_model_path = pathlib.Path(f"model_for_{N_FEATURES}_features.pkl")
     metadata = SingleTableMetadata()
     metadata.detect_from_dataframe(train_data)
     model = GaussianCopula(metadata, enforce_min_max_values=False)
-    model.add_constraints(constraints=constraints)
-    warnings.simplefilter('ignore')
-    model.fit(train_data)
-    stop_time = time.time()
-    print(f"Model fit (time: {stop_time-start_time})")
+    if FORCE_REFIT_MODEL or not expected_model_path.exists():
+        model.add_constraints(constraints=constraints)
+        warnings.simplefilter('ignore')
+        model.fit(train_data)
+        stop_time = time.time()
+        print(f"Model fit (time: {stop_time-start_time})")
+        start_time = stop_time
+        warnings.simplefilter('default')
+        start_time = stop_time
+        model.save(expected_model_path)
+        stop_time = time.time()
+        print(f"Model save time (time: {stop_time-start_time})")
+    else:
+        model = model.load(expected_model_path)
+        stop_time = time.time()
+        print(f"Model reload from {expected_model_path} (time: {stop_time-start_time})")
     start_time = stop_time
-    warnings.simplefilter('default')
-    # Inference
-    #generated_embeddings = model.sample_from_conditions(conditions)
-    def sample_slice(model, conditions, indices):
-        temp_out_name = pathlib.Path(f".sample.csv.tmp_{indices}")
-        generated = model.sample_from_conditions(conditions, output_file_path=temp_out_name)
-        temp_out_name.unlink()
-        return (indices, generated)
 
     SLICE_INTERVAL = 10
     SLICE_LIMIT = len(conditions)
@@ -196,7 +222,7 @@ if precomputed_embeddings is None:
             for (idx, (_,series)) in zip(slice_as_range, generation.iterrows()):
                 generated_embeddings[idx] = series
         generated_embeddings = pd.DataFrame(generated_embeddings).reset_index(drop=True)
-    generated_embeddings.to_csv('generated.csv', index=False)
+    generated_embeddings.to_csv(precomputed_embeddings, index=False)
     stop_time = time.time()
     print(f"{len(generated_embeddings)} inferences made in {stop_time-start_time}")
 else:
@@ -219,10 +245,9 @@ if TARGET_DATA == "EXHAUSTIVE":
     # Drop embedding columns for objective lookups here
     lookup_param_cols = [_ for _ in generated_embeddings if not _.startswith("emb_dim_")]
     generated_objectives = np.zeros_like(test_obj)
-    import tqdm
-    results_queue = []
     """
     print("Make async pool")
+    results_queue = []
     with multiprocessing.Pool() as pool:
         for (idx,generated_param) in generated_embeddings.iterrows():
             param_dict = dict((k.upper(),generated_param[k]) for k in lookup_param_cols)
@@ -243,9 +268,9 @@ if TARGET_DATA == "EXHAUSTIVE":
         generated_objectives[idx] = problem.evaluateConfiguration(param_dict, use_oracle=True, as_rank=True, single_return=True)
         #print(f'Produce and fetch {idx}')
     #"""
-    with open('original_ranks.npy','wb') as orig_ranks:
+    with open(f'original_ranks_{N_FEATURES}.npy','wb') as orig_ranks:
         np.save(orig_ranks,test_obj)
-    with open('generated_ranks.npy','wb') as generated_ranks:
+    with open(f'generated_ranks_{N_FEATURES}.npy','wb') as generated_ranks:
         np.save(generated_ranks,generated_objectives)
 stop_time = time.time()
 print(f"Reranked inferences in {stop_time-start_time}")
@@ -256,9 +281,9 @@ reorder = np.argsort(test_obj)
 x_range = range(test_obj.shape[0])
 ax.plot(x_range, test_obj[reorder], label="True rank")
 ax.scatter(x_range, generated_objectives[reorder], s=1, label="Generated rank", color='tab:orange')
-ax.set_title("{TARGET_DATA} with {N_FEATURES} features")
+ax.set_title(f"{TARGET_DATA} with {N_FEATURES} features")
 ax.legend()
-fig.savefig("rankings.png", dpi=200)
+fig.savefig(f"rankings_{N_FEATURES}.png", dpi=200)
 stop_time = time.time()
-print("Plotted in {stop_time-start_time}")
+print(f"Plotted in {stop_time-start_time}")
 
