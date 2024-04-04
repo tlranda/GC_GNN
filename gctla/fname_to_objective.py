@@ -60,7 +60,12 @@ def convert(from_name, to_name, oracles):
     from_df = pd.read_csv(from_name)
     # Rename this column if it exists
     # No try-except because apparently pandas doesn't care if the source column isn't present
-    from_df.rename(columns={'runtime':'objective'}, inplace=True)
+    if 'runtime' in from_df.columns:
+        from_df.rename(columns={'runtime':'objective'}, inplace=True)
+    elif 'actual_runtime' in from_df.columns:
+        from_df.rename(columns={'actual_runtime':'objective'}, inplace=True)
+    elif 'objective' not in from_df.columns:
+        raise ValueError(f"Did not recognize an objective column in CSV '{from_name}' (usually named: 'runtime','actual_runtime','objective')")
     # Use filenames to add parameters
     injection_columns = [col for col in list(oracles.values())[0]]
     for col in injection_columns[::-1]:
