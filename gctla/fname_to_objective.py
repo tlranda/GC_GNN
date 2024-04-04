@@ -37,7 +37,7 @@ def identify_size_from_name(name):
             return size.lstrip('_').rstrip('_')
     raise ValueError(f"Unable to get any size (option: '{SIZES}') from name '{name}'")
 
-row_regex = re.compile(r".*([0-9]+).*")
+row_regex = re.compile(r"mmp_all_[LMSX]+_([0-9]+)\.pth")
 def identify_row_from_name(name):
     matches = row_regex.match(name)
     assert matches is not None, f"Unable to extract row ID from file name '{name}'"

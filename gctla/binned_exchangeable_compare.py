@@ -26,8 +26,8 @@ def build():
                         help="Number of quantile-based bins to create (default: %(default)s)")
     iocntrl.add_argument("--view-bins", type=int, nargs="*", default=None,
                         help="Only plot specified bin IDs, each as index [0-nbins) (default: all bins)")
-    iocntrl.add_argument("--rolling", type=int, default=3,
-                        help="Size of window for rolling mean (default %(default)s)")
+    iocntrl.add_argument("--rolling", type=int, default=0,
+                        help="Size of window for rolling mean (0 to omit) (default %(default)s)")
     pcntrl = prs.add_argument_group("Plot controls")
     pcntrl.add_argument("--export", default=None,
                         help="Instead of displaying plot, save to path (default display only, do not save)")
@@ -67,8 +67,6 @@ def parse(args=None, prs=None):
         ok_bin = [_ in bin_range for _ in args.view_bins]
         if not all(ok_bin):
             raise ValueError(f"Bin out-of-range. Bin range: [0,{args.n_bins}) bins, but requested view of illegal bins {[args.view_bins[i] for (i,tvalue) in enumerate(ok_bin) if not tvalue]}")
-    if args.rolling < 1:
-        raise ValueError(f"Rolling mean window must have at least one element")
     # Plot configuration
     if args.fig_pts is not None:
         def set_size(width, fraction=1, subplots=(1,1)):
@@ -198,10 +196,11 @@ def main(args=None):
         # As dots
         dots = ax.scatter(binx, biny, s=0.5, label=f"Bin {idx}")
         legend_handles.append(dots)
-        # Rolling mean line
-        lines = ax.plot(*rolling_mean(binx, biny, args.rolling), linewidth=1, linestyle='dotted')
         # Perfect fit line
-        perfect_fit = ax.plot(binx, binx, linewidth=1, color=lines[0].get_color())
+        perfect_fit = ax.plot(binx, binx, linewidth=1)
+        # Rolling mean line
+        if args.rolling > 0:
+            lines = ax.plot(*rolling_mean(binx, biny, args.rolling), linewidth=1, linestyle='dotted', color=perfect_fit[0].get_color())
     if args.legend_loc != 'none':
         legend = ax.legend(handles=legend_handles, loc=args.legend_loc, prop={'size': 10})
 
