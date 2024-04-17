@@ -1,1 +1,2 @@
 *.zip filter=lfs diff=lfs merge=lfs -text
+tensors_syr2k_exhaustive_data.pkl filter=lfs diff=lfs merge=lfs -text
