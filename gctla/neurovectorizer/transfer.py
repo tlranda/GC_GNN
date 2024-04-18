@@ -33,7 +33,111 @@ source_app = ['s10_1024_add_0',
               's10_1024_sub_2',
               's10_1024_sub_3',]
 """
-source_app = possible_names[[0,10,20,30,40]]
+source_app = [
+'s10_1024_mul_4',
+'s10_1024_sub_0',
+'s10_1024_sub_1',
+'s10_1024_sub_2',
+'s10_1024_sub_3',
+'s10_1024_add_1',
+'s10_1024_add_2',
+'s10_1024_add_3',
+'s10_1024_add_0',
+'s10_2048_sub_0',
+'s10_2048_sub_3',
+'s10_2048_mul_4',
+'s10_2048_sub_2',
+'s10_2048_sub_1',
+'s10_2048_add_0',
+'s10_2048_add_2',
+'s10_2048_add_3',
+'s10_2048_add_1',
+'s10_16384_sub_4',
+'s10_4096_mul_4',
+'s10_4096_sub_3',
+'s10_4096_sub_0',
+'s10_4096_sub_2',
+'s10_4096_sub_1',
+'s12_2048_sa_out',
+'s12_4096_input_out',
+'s12_4096_in_assign',
+'s12_4096_sa_assign',
+'s17_8192_sub_3',
+'s12_4096_2_short_a_result',
+'s12_4096_short_a_assign',
+'s12_4096_input_assign',
+'s12_4096_input_result',
+'s12_4096_sa_result',
+'s12_4096_input_ia',
+'s12_4096_in_result',
+'s12_4096_in_ia',
+'s12_4096_short_a_ia',
+'s12_4096_short_a_out',
+'s12_4096_sa_ia',
+'s12_4096_sa_out',
+'s12_4096_in_out',
+'s12_1024_sa_result',
+'s12_1024_short_a_assign',
+'s12_2048_in_result',
+'s12_2048_sa_assign',
+'s12_1024_input_result',
+'s12_1024_in_result',
+'s12_1024_in_out',
+'s12_2048_in_ia',
+'s12_2048_sa_ia',
+'s12_2048_sa_result',
+'s12_2048_input_result',
+'s12_2048_input_assign',
+'s12_2048_in_out',
+'s12_1024_input_assign',
+'s12_1024_sa_assign',
+'s12_1024_input_ia',
+'s12_1024_input_out',
+'s12_1024_in_assign',
+'s12_1024_short_a_out',
+'s12_2048_in_assign',
+'s12_2048_input_ia',
+'s12_1024_short_a_ia',
+'s12_1024_in_ia',
+'s12_1024_sa_out',
+'s12_2048_short_a_out',
+'s12_2048_2_short_a_result',
+'s10_4096_add_1',
+'s12_2048_input_out',
+'s12_2048_short_a_ia',
+'s10_4096_add_2',
+'s12_2048_short_a_assign',
+'s12_1024_sa_ia',
+'s7_4096_1',
+'s12_1024_2_short_a_result',
+'s10_4096_add_3',
+'s7_4096_4',
+'s10_4096_add_0',
+'s7_4096_2',
+'s7_1024_4',
+'s7_2048_0',
+'s7_2048_4',
+'s7_1024_2',
+'s7_2048_1',
+'s7_1024_1',
+'s7_1024_3',
+'s7_2048_2',
+'s7_16384_5',
+'s7_256_5',
+'s6n_8192_sub_5',
+'s7_4096_3',
+'s10_256_sub_4',
+'s7_4096_0',
+'s17_8192_sub_6',
+'s17_16384_sum_1',
+'s17_8192_sub_0',
+'s17_8192_mul_6',
+'s17_8192_sum_0',
+'s17_8192_sum_2',
+]
+#source_app = possible_names[[0,10,20,30,40]]
+source_app_csv = pd.DataFrame(data={'app':source_app},index=range(len(source_app)))
+source_app_csv.to_csv("GC_Source_Applications.csv", index=False)
 #target_app = ['s10_1024_add_0',
 #              's15_16384_128_sub_2']
 target_app = [_ for _ in possible_names if _ not in source_app]
@@ -101,7 +205,21 @@ sampled = model.sample(num_rows=n_sample)
 if string_casted:
     sampled[['VF','IF']] = sampled[['VF','IF']].astype(int)
 sample_np = sampled.to_numpy()
+print("Literal GC predictions")
 print(sampled)
+possible = target_data[['VF','IF']].drop_duplicates().to_numpy()
+casted = {'VF':[],'IF':[]}
+for sample in sample_np:
+    distances = ((possible - sample)**2).sum(axis=1)
+    closest = np.argmin(distances)
+    casted['VF'].append(possible[closest,0])
+    casted['IF'].append(possible[closest,1])
+print("Closest representation")
+closest_sample = pd.DataFrame(data=casted,index=range(len(sample_np))).drop_duplicates()
+closest_sample_np = closest_sample.to_numpy()
+print(closest_sample)
+closest_sample.to_csv("GC_Samples.csv", index=False)
+
 n_successes = 0
 for target in tqdm.tqdm(target_app):
     # Find minimum distance

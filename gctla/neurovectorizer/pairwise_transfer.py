@@ -53,7 +53,7 @@ fig, ax = plt.subplots()
 ax.scatter(np.arange(len(r2_scores)), r2_scores, marker='.')
 plt.savefig('neurovec_correlations.png')
 print(f"Highest correlations with {possible_names[0]}:")
-for idx in np.argsort(-r2_scores)[:5]:
+for idx in np.argsort(-r2_scores)[:100]:
     print(f"{possible_names[idx]}: {r2_scores[idx]}")
 print(f"Lowest correlations with {possible_names[0]}:")
 for idx in np.argsort(r2_scores)[:5]:
