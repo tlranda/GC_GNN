@@ -29,7 +29,8 @@ def make_dist(value_dict, data):
 def add_input_column(df, name):
     inverted = dict((v[0],k) for (k,v) in lookup_ival.items())
     matches = [(k,v) for (k,v) in inverted.items() if k in name]
-    match = matches[max(map(len,[_[0] for _ in matches]))][1]
+    # Longest substring should be the match we desire for the size
+    match = matches[np.argmax([_ for _ in map(len,[_[0] for _ in matches])])][1]
     df.insert(len(df.columns), 'input', [match] * len(df))
     return df
 
@@ -148,6 +149,8 @@ def main(args=None):
         cond_samples[['p3','p4','p5']] = cond_samples[['p3','p4','p5']].astype(int)
     else:
         cond_samples = load_csv(args.precomputed)
+        if 'input' not in cond_samples:
+            cond_samples = add_input_column(cond_samples, args.precomputed)
         print(f"Loaded precomputed file with {len(source_dataset)} values for TL distribution")
 
     # Make the comparable distributions

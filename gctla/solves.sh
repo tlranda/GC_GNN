@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Settings
-override=0; # Set =0 to not repeat experiments when directory already exists. Set =1 to clobber existing directories/repeat experiments
+override=1; # Set =0 to not repeat experiments when directory already exists. Set =1 to clobber existing directories/repeat experiments
 
 # Static Components
 fit_seed="1234";
@@ -9,9 +9,10 @@ sample_seeds="1234 2024 9999 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20";
 input_data="oracles/SM/all_SM.csv";
 problem_file="~/ANL_23/dependencies/GC_TLA/Benchmarks/polybench/syr2k/problem.py";
 input_scale="SM";
+budget_ideal="0.3";
 custom_data_schedule="full_schedule.npy";
 # Fix values in place
-static_args="--fit-seed ${fit_seed} --sample-seed ${sample_seeds} --input-data ${input_data} --problem-file ${problem_file} --input-scale ${input_scale} --custom-data-schedule ${custom_data_schedule}";
+static_args="--fit-seed ${fit_seed} --sample-seed ${sample_seeds} --input-data ${input_data} --problem-file ${problem_file} --input-scale ${input_scale} --custom-data-schedule ${custom_data_schedule} --budget-ideal ${budget_ideal} --always-max-evals";
 
 # Dynamic components
 fit_method=( "objective-best" "objective-worst" "objective-cocktail" );

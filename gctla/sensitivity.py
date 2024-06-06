@@ -77,6 +77,7 @@ def main(args=None):
         print("Ranking:\n",sklearn_importance)
 
         # SHAP importance
+        """
         explainer = shap.TreeExplainer(regressor)
         shap_values = explainer.shap_values(load_X)
         shap_accumulate = shap_values.sum(axis=0)
@@ -85,6 +86,7 @@ def main(args=None):
         print("\nShap feature priority:\n",param_names[shap_importance])
         print("Importances:\n",shap_accumulate[shap_importance])
         print("Ranking:\n",shap_importance)
+        """
 
         # Combined importance is misleading and hard to do correctly
         #combined = sklearn_importance + shap_importance

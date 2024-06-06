@@ -15,7 +15,8 @@ def load(oracle_data):
     print("Begin")
     # Load dataset
     #og_df = pd.read_csv(oracle_data).sort_values(by=["objective"]).reset_index(drop=True)
-    og_df = pd.read_csv(oracle_data).sort_values(by=["p3","p4","p1","p2","p0","p5"]).reset_index(drop=True)
+    #og_df = pd.read_csv(oracle_data).sort_values(by=["p3","p4","p1","p2","p0","p5"]).reset_index(drop=True)
+    og_df = pd.read_csv(oracle_data).sort_values(by=["p5","p0","p2","p1","p4","p3"]).reset_index(drop=True)
     # Columns we're working with
     target_cols = [_ for _ in og_df.columns if re.match(r"p[0-9]+", _) is not None]
     print("Data loaded")
