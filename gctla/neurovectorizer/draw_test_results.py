@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_area_auto_adjustable
 
+SOFT_VERSION="0.1"
 
 def load_data(sources=None, y_labels=None, y_labels_at=None, source_range=None):
     if y_labels_at is None:
@@ -51,7 +52,7 @@ def load_data(sources=None, y_labels=None, y_labels_at=None, source_range=None):
     data_colors = pd.concat(accumulate_colors, axis=1)
     return y_labels, y_labels_at, data_colors, accumulate_passes, accumulate_n_passing
 
-def plot_image(data_colors, accumulate_passes, accumulate_n_passing, y_labels_at, y_labels, source_range=None):
+def plot_image(data_colors, accumulate_passes, accumulate_n_passing, y_labels_at, y_labels, source_range=None, figname=""):
     # Plot the image
     fig = plt.figure(figsize=(18, 6))
     # Make x-axis labels
@@ -86,26 +87,40 @@ def plot_image(data_colors, accumulate_passes, accumulate_n_passing, y_labels_at
     fig.suptitle(f"Transferability out of {n_tests} Targets")
     fig.set_tight_layout(True)
     #plt.show()
-    figname = f"Plot_for_slice_{source_range.start:04d}_{source_range.stop:04d}.png"
     fig.savefig(figname, format='png')
     print("\tPlotted:", figname)
     plt.close(fig)
 
 def main():
-    sources = np.asarray([_.stem[:-len('_to_all_tests')] for _ in pathlib.Path('test_results').iterdir() if _.suffix == '.csv'])
+    test_dir = 'test_results'
+    sources = np.asarray([_.stem[:-len('_to_all_tests')] for _ in pathlib.Path(test_dir).iterdir() if _.suffix == '.csv'])
+    print(f"Identified {sources.shape[0]} test results in directory '{test_dir}'")
     y_labels, y_labels_at = None, None
     per_slice = 15
     n_slices = (sources.shape[0]+(per_slice-1)) // per_slice
+    print(f"Slicing in groups of {per_slice}, ie: {n_slices} groups to plot")
+    exists_start = None
     for (start,stop) in zip(np.arange(0,n_slices*per_slice,per_slice), np.arange(per_slice,n_slices*per_slice,per_slice)):
         stop = min(stop,sources.shape[0])
         if start == stop:
             break
-        print(f"Process slice {start} -> {stop}")
+        figname = f"slice_figures/Plot_v{SOFT_VERSION}_for_slice_{start:04d}_{stop:04d}.png"
+        if pathlib.Path(figname).exists():
+            if exists_start is None:
+                exists_start = start
+            continue
+        else:
+            if exists_start is not None:
+                print(f"Slices {exists_start} -> {start} satisfy min_version {SOFT_VERSION}, skipping {(start-exists_start)//per_slice} plots")
+                exists_start = None
+            print(f"Process slice {start} -> {stop}")
         y_labels, y_labels_at, data_colors, accumulate_passes, accumulate_n_passing = load_data(sources=sources,
                                                                                                 y_labels=y_labels,
                                                                                                 y_labels_at=y_labels_at,
                                                                                                 source_range=slice(start,stop))
-        plot_image(data_colors, accumulate_passes, accumulate_n_passing, y_labels_at, y_labels, source_range=slice(start,stop))
+        plot_image(data_colors, accumulate_passes, accumulate_n_passing, y_labels_at, y_labels, source_range=slice(start,stop), figname=figname)
+    if exists_start is not None:
+        print(f"Slices {exists_start} -> {stop} satisfy min_version {SOFT_VERSION}, skipping {(stop-exists_start)//per_slice} plots")
 
 if __name__ == '__main__':
     main()
