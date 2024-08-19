@@ -37,13 +37,13 @@ def identify_size_from_name(name):
             return size.lstrip('_').rstrip('_')
     raise ValueError(f"Unable to get any size (option: '{SIZES}') from name '{name}'")
 
-row_regex = re.compile(r"mmp_all_[LMSX]+_([0-9]+)\.pth")
+row_regex = re.compile(r"mmp_all_[LMSX]+_([0-9]+)(?:\.pth)?")
 def identify_row_from_name(name):
     matches = row_regex.match(name)
     assert matches is not None, f"Unable to extract row ID from file name '{name}'"
     return int(matches.groups()[0])
 
-OMIT_COLUMNS = ['objective', 'predicted', 'elapsed_sec']
+OMIT_COLUMNS = ['predicted', 'elapsed_sec']
 def load_oracles(oracles):
     frames = {}
     for oracle in oracles:
@@ -64,8 +64,8 @@ def convert(from_name, to_name, oracles):
         from_df.rename(columns={'runtime':'objective'}, inplace=True)
     elif 'actual_runtime' in from_df.columns:
         from_df.rename(columns={'actual_runtime':'objective'}, inplace=True)
-    elif 'objective' not in from_df.columns:
-        raise ValueError(f"Did not recognize an objective column in CSV '{from_name}' (usually named: 'runtime','actual_runtime','objective')")
+    #elif 'objective' not in from_df.columns:
+    #    raise ValueError(f"Did not recognize an objective column in CSV '{from_name}' (usually named: 'runtime','actual_runtime','objective')")
     # Use filenames to add parameters
     injection_columns = [col for col in list(oracles.values())[0]]
     for col in injection_columns[::-1]:
