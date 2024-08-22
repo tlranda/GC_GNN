@@ -95,7 +95,7 @@ def lookup_ranks(rankable, match_columns, lookup):
 
 def oracle_rank(fname, idx, args):
     data = pd.read_csv(fname)
-    columns = [_ for _ in data.columns if _ not in ['scale','objective']]
+    columns = [_ for _ in data.columns if _ not in ['scale','rank','objective']]
 
     data = data.sort_values(by=['objective']).reset_index(drop=False,names=["OriginalOrder"])
     # Budget based on original ordering
