@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import warnings
 import numpy as np
 import pandas as pd
@@ -19,30 +20,33 @@ except ImportError:
 def hypergeo(i,p,t,k):
     return (comb(i,t)*comb((p-i),(k-t))) / comb(p,k)
 
+# ALL possible names
 possible_names = np.asarray(sorted(set(nvt.executor.oracle_data['app'])))
 
 n_sample = 3
 np.random.seed(2024)
 torch.manual_seed(2024)
 
-"""
-source_app = ['s10_1024_add_0',
-              's10_1024_mul_4',
-              's10_1024_sub_0',
-              's10_1024_sub_1',
-              's10_1024_sub_2',
-              's10_1024_sub_3',]
+# Prune names to this subset
+possible_names = pd.read_csv('train_order.csv')['source'].to_numpy()
+train_test_ratio = 0.5
+fit_best = False #True
+if fit_best:
+    source_app = possible_names[:int(train_test_ratio * len(possible_names))]
+else:
+    source_app = possible_names[-int(train_test_ratio * len(possible_names)):]
+#source_app = possible_names[[0,10,20,30,40]]
 """
 source_app = [
+'s10_1024_add_0',
 's10_1024_mul_4',
 's10_1024_sub_0',
 's10_1024_sub_1',
 's10_1024_sub_2',
-'s10_1024_sub_3',
+'s10_1024_sub_3', # Truncated here for very small source set
 's10_1024_add_1',
 's10_1024_add_2',
 's10_1024_add_3',
-'s10_1024_add_0',
 's10_2048_sub_0',
 's10_2048_sub_3',
 's10_2048_mul_4',
@@ -135,12 +139,16 @@ source_app = [
 's17_8192_sum_0',
 's17_8192_sum_2',
 ]
-#source_app = possible_names[[0,10,20,30,40]]
+"""
 source_app_csv = pd.DataFrame(data={'app':source_app},index=range(len(source_app)))
 source_app_csv.to_csv("GC_Source_Applications.csv", index=False)
-#target_app = ['s10_1024_add_0',
-#              's15_16384_128_sub_2']
-target_app = [_ for _ in possible_names if _ not in source_app]
+"""
+target_app = [
+ 's10_1024_add_0',
+ 's15_16384_128_sub_2'
+]
+"""
+target_app = np.asarray([_ for _ in possible_names if _ not in source_app])
 """
 Highest correlations with s10_1024_add_0:
 s10_1024_mul_4: 0.9056244519128787
@@ -167,10 +175,13 @@ total_population = 35 # Number of samples in search space
 ideal_samples = 3 # Target to hit [0,#] inclusive
 target_confidence = 0.95 # Confidence in hitting target
 
+# This violates the subset operation I'm doing and re-introduces bonus data. Have to fix it
 raw_data = nvt.executor.oracle_data.drop(columns=['Unnamed: 0'])
 lookup_names = raw_data['app']
-source_idx = [idx for (idx, name) in enumerate(lookup_names) if name in source_app]
-target_idx = [idx for (idx, name) in enumerate(lookup_names) if name in target_app]
+source_idx = np.in1d(lookup_names, source_app)
+#source_idx = [idx for (idx, name) in enumerate(lookup_names) if name in source_app]
+target_idx = np.in1d(lookup_names, target_app)
+#target_idx = [idx for (idx, name) in enumerate(lookup_names) if name in target_app]
 source_data = raw_data.loc[source_idx].reset_index(drop=True)
 target_data = raw_data.loc[target_idx].reset_index(drop=True)
 #source_data = pd.concat([raw_data[raw_data['app'] == source] for source in source_app]).reset_index(drop=True)

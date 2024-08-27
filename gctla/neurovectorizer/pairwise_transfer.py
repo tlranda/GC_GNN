@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import numpy as np
 import pandas as pd
 from GC_TLA.implementations.neurovectorizer import neurovectorizer_titan as nvt
