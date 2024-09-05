@@ -19,6 +19,8 @@ def build():
             help="Data is already ranked (default: %(default)s)")
     prs.add_argument("--scale-column", default='input',
             help="Column used to get scale value (default: %(default)s)")
+    prs.add_argument("--log-y", action="store_true",
+            help="Log-scale the y-axis (default: %(default)s)")
     return prs
 
 def parse(args=None, prs=None):
@@ -76,6 +78,8 @@ def cdf(search, args):
         ax.plot(linedata.index, linedata['cdf_rank'], label=fname, marker='.')
     ax.invert_yaxis()
     ax.legend()
+    if args.log_y:
+        ax.set_yscale('log')
     plt.show()
 
 def main(args=None):
@@ -99,7 +103,7 @@ def main(args=None):
             print(f"!! Could not read {fname}")
             continue
         if args.preranked:
-            drop_cols = set(data.columns).difference({'objective',})
+            drop_cols = set(data.columns).difference({'rank',})
         else:
             drop_cols = set(data.columns).difference(set(param_cols).union({args.scale_column,}))
         data = data.drop(columns=drop_cols)

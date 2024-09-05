@@ -96,6 +96,7 @@ def main(args=None):
                               rerank_name: original_order[rerank_order],
                               'order': [args.order] * len(original_order),
                               }).to_csv(logname, index=False)
+                print("Saved log to", logname)
             print("Original order:", original_order)
             print("Reranked by MGA:", original_order[rerank_order])
             fig,ax = plt.subplots()
