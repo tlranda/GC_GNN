@@ -93,7 +93,11 @@ def main(args=None):
     # Searches
     searches = []
     for fname in args.data:
-        data = pd.read_csv(fname)
+        try:
+            data = pd.read_csv(fname)
+        except FileNotFoundError:
+            print(f"!! Could not read {fname}")
+            continue
         if args.preranked:
             drop_cols = set(data.columns).difference({'objective',})
         else:
