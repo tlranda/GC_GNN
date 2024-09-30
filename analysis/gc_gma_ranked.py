@@ -34,10 +34,12 @@ def fetch_gc_seeds(rootdir):
     return gc_names
 
 def lookup_ranks(rankable, match_columns, lookup):
+    # Report ranks of rankable entries based on their index in lookup
     reranking = -1 * np.ones(len(rankable), dtype=int)
     for idx, row in rankable.iterrows():
         search = tuple(row[match_columns].astype(str).values)
-        n_matches = (lookup[match_columns].astype(str) == search).sum(1).to_numpy()
+        size_matched = lookup[lookup['size'] == row['size']].reset_index(drop=True)
+        n_matches = (size_matched[match_columns].astype(str) == search).sum(1).to_numpy()
         full_match_idx = np.nonzero(n_matches == len(match_columns))[0]
         if len(full_match_idx) != 1:
             continue
@@ -49,12 +51,27 @@ def lookup_ranks(rankable, match_columns, lookup):
 
 ranking_columns = ['size']+[f'p{_}' for _ in range(6)]
 def rerank(gc_name, gc, rerank_name, rerank):
-    # Naive order
+    # Naive order: Picks the nth-optimal results in order based on original index values post-sorting
     gc_ranked = gc.sort_values(by=['objective']).index.to_numpy()
     print(f"Original GC order for {gc_name}: {gc_ranked}")
-    # Reranked order
-    reranked = lookup_ranks(gc, ranking_columns, rerank.sort_values(by=['predicted']))
+    # Rerank order: Pick the nth-optimal result based on predicted order, use argsort for selection
+    # Incoming order needs to be correctly sorted for the argsort to indicate ground truth selection
+    reranked = lookup_ranks(gc.sort_values(by=['objective']).reset_index(drop=True),
+                            ranking_columns, rerank.sort_values(by=['predicted']))
+    rerank_pick_order = np.argsort(reranked)
     print(f"Reranked by {rerank_name}: {reranked}")
+    print(f"Rerank pick order: {rerank_pick_order}")
+    fig, ax = plt.subplots()
+    ax.plot(range(len(gc_ranked)), gc_ranked, marker='.',
+            label='Original GC Order')
+    ax.plot(range(len(gc_ranked)), rerank_pick_order, marker='.',
+            label=f'Reranked GC Order')
+    ax.hlines(0, 0, len(gc_ranked), color='k', linestyle='--') # Show minimum intercept
+    ax.set_xlabel('Evaluation order')
+    ax.set_ylabel('Local goodness')
+    ax.set_title(f"{gc_name} reranked by {rerank_name}")
+    ax.legend(loc='upper right')
+    plt.show()
 
 def main(args=None):
     args = parse(args)

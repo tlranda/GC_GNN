@@ -52,7 +52,11 @@ def identify_row_from_name(name):
 OMIT_COLUMNS = ['objective', 'predicted', 'elapsed_sec']
 def load_oracles(oracles, drop_objective=True):
     frames = {}
-    OMITS = [_ for _ in OMIT_COLUMNS if (not drop_objective and 'objective' not in _)]
+    OMITS = []
+    for col in OMIT_COLUMNS:
+        if not drop_objective and col == 'objective':
+            continue
+        OMITS.append(col)
     for oracle in oracles:
         size_identifier = identify_size_from_name(oracle)
         csv = pd.read_csv(oracle).drop(columns=OMITS)
