@@ -31,6 +31,10 @@ def fetch_gc_seeds(rootdir):
                 regex_check = seed_regex.match(path.stem)
                 if regex_check:
                     gc_names.append(str(path))
+        else:
+            seed_regex = re.compile('GC_selections.*\.csv')
+            if seed_regex.match(directory.name):
+                gc_names.append(str(directory))
     return gc_names
 
 def lookup_ranks(rankable, match_columns, lookup):
@@ -52,12 +56,26 @@ def lookup_ranks(rankable, match_columns, lookup):
 ranking_columns = ['size']+[f'p{_}' for _ in range(6)]
 def rerank(gc_name, gc, rerank_name, rerank):
     # Naive order: Picks the nth-optimal results in order based on original index values post-sorting
-    gc_ranked = gc.sort_values(by=['objective']).index.to_numpy()
-    print(f"Original GC order for {gc_name}: {gc_ranked}")
+    try:
+        gc_ranked = gc.sort_values(by=['objective']).index.to_numpy()
+        sort_by = 'objective'
+    except:
+        gc_ranked = gc.sort_values(by=['rank']).index.to_numpy()
+        sort_by = 'rank'
     # Rerank order: Pick the nth-optimal result based on predicted order, use argsort for selection
     # Incoming order needs to be correctly sorted for the argsort to indicate ground truth selection
-    reranked = lookup_ranks(gc.sort_values(by=['objective']).reset_index(drop=True),
-                            ranking_columns, rerank.sort_values(by=['predicted']))
+    try:
+        rerank = rerank.sort_values(by=['predicted'])
+    except:
+        rerank = rerank.sort_values(by=['objective'])
+    try:
+        reranked = lookup_ranks(gc.sort_values(by=[sort_by]).reset_index(drop=True),
+                                ranking_columns, rerank)
+    except:
+        print(f"Could not use {rerank_name} to rerank {gc_name}")
+        return
+
+    print(f"Original GC order for {gc_name}: {gc_ranked}")
     rerank_pick_order = np.argsort(reranked)
     print(f"Reranked by {rerank_name}: {reranked}")
     print(f"Rerank pick order: {rerank_pick_order}")
