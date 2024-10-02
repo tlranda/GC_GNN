@@ -2,6 +2,8 @@ import argparse
 import pandas as pd
 import pathlib
 import re
+import sys
+from tqdm import tqdm
 
 def build():
     prs = argparse.ArgumentParser()
@@ -31,7 +33,7 @@ def export(data, args):
     template_base = template_path.stem
     triggers = set(data.columns).difference({'fname','objective','elapsed_sec'})
     triggers = [f"#{t.upper()}" for t in triggers]
-    for idx, row in data.iterrows():
+    for idx, row in tqdm(data.iterrows()):
         writeout = f"{args.output_dir}/{template_base}_{row['fname']}_{idx}.{template_ext}"
         with open(writeout, 'w') as w:
             for line in lines:

@@ -2,6 +2,7 @@ import os
 import subprocess
 import argparse
 import pathlib
+from tqdm import tqdm
 
 def build():
     prs = argparse.ArgumentParser()
@@ -50,12 +51,23 @@ def main(args=None):
                        "-mllvm -polly-use-llvm-names -ffast-math -march=native {} -o {}"
 
     with open(args.output_script, 'w') as f:
-        for fname in sorted(args.input_dir.iterdir()):
+        for fname in tqdm(sorted(args.input_dir.iterdir())):
             if fname.suffix != '.c':
                 continue
             # This is hardcoded for syr2k detection for now -- a better means of dataset selection could
             # be extracted from GC_TLA at some point
-            size = '-DSMALL_DATASET' if 'syr2k_S' in str(fname) else '-DLARGE_DATASET'
+            detection = {"N": "MINI",
+                         "S": "SMALL",
+                         "SM": "SM",
+                         "M": "MEDIUM",
+                         "ML": "ML",
+                         "L": "LARGE",
+                         "XL": "EXTRALARGE",
+                         "H": "HUGE",}
+            detect = [detection[k] for k in str(fname.name).split("_") if k in detection.keys()]
+            if len(detect) > 1:
+                raise ValueError(f"Automatic dataset size detection failed for {fname}: {detect}")
+            size = f'-D{detect[0]}_DATASET'
             if args.AS:
                 cmd = cmd_template.format(args.clang,
                                           fname.with_suffix('.ll'),
@@ -72,6 +84,9 @@ def main(args=None):
                                           args.include,
                                           size,
                                           fname.with_suffix(''))
+                if args.IR:
+                    if fname.with_suffix('.ll').exists():
+                        continue
             f.write(f'echo "{cmd}"'+"\n")
             f.write(cmd+"\n")
             if args.IR:
