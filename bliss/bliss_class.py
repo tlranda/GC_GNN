@@ -13,7 +13,10 @@
 
 # Builtin imports
 import argparse
+from functools import reduce
+from operator import mul
 import random
+import time
 from typing import Optional, List, Tuple, Union
 import warnings
 
@@ -78,12 +81,8 @@ class BLISS_Tuner():
         self.parameters = self.build_parameters()
         # Make an indexer for BLISS to use in selections and track total
         # parameter sizes
-        self.param_index = []
-        self.total_choice = 1
-        for param in self.parameters:
-            plen = len(param)
-            self.total_choice *= plen
-            self.param_index.append(list(range(plen)))
+        self.param_index = list(map(list, map(range, map(len, self.parameters))))
+        self.total_choice = reduce(mul,map(len,self.parameters))
 
         # Used to track evaluation results and know the source of truth
         self.model_sampling_list = [list() for _ in range(len(self.model_list))]
@@ -94,9 +93,6 @@ class BLISS_Tuner():
 
     """
         IMPLEMENTERS WILL OVERRIDE THESE METHODS
-        Preferred implementation is via wrapping, ie:
-
-        # Example class method 'func'
         def func(self, *args, **kwargs):
             super().func(*args, **kwargs)
             # Then your own implementation / extension here
@@ -276,17 +272,13 @@ class BLISS_Tuner():
                             ) -> List[List[object]]:
         # Return randomly selected unique hyperparameter configurations
 
-        samples = []
-        out_count = 0
-        while out_count < n_samples:
+        samples = set()
+        while len(samples) < n_samples:
             in_list = []
-            in_count = 0
-            while in_count < len(self.param_index):
+            for in_count in range(len(self.param_index)):
                 in_list.append(random.choice(self.param_index[in_count]))
-                in_count += 1
-            if in_list not in samples:
-                samples.append(in_list)
-                out_count += 1
+            samples.add(tuple(in_list))
+        samples = list(map(list,samples))
         return samples
 
     def opt_acquisition(self,
@@ -398,8 +390,11 @@ class BLISS_Tuner():
             else:
                 # Choices become increasingly weighted by what works best
                 # However, we exclude lookahead evaluations from biasing the list
-                not_lookahead = np.where(np.asarray(self.lookahead_list[self.args.num_initial_sample:]) == 0)[0]
-                model_indices = np.asarray(self.model_selection_list)[not_lookahead]
+                index = random.choice(model_indices)
+                model = self.model_list[index]
+                acqval = self.acqval_list[index]
+                # Select the point with this model/acqval combination
+                opt = self.opt_acquisition(model, acqval)
                 index = random.choice(model_indices)
                 model = self.model_list[index]
                 acqval = self.acqval_list[index]

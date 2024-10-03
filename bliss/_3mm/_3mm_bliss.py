@@ -10,10 +10,17 @@ from GC_TLA.base_plopper import Polybench_Plopper
 from bliss_class import BLISS_Tuner
 
 class _3mm_Tuner(BLISS_Tuner):
+    default_percentage_sampled_by_acq = 0.10
+    default_max_calls = 200
+
     def __init__(self, *args):
         super().__init__(*args)
         template = pathlib.Path('./mmp.c').resolve()
-        self.plopper = Polybench_Plopper(template, template.parents[0], output_extension='.c')
+        self.plopper = Polybench_Plopper(str(template), str(template.parents[0]), output_extension='.c')
+        self.plopper.metric = self.metric
+
+    def metric(self, timing_list):
+        return np.asarray(timing_list)[:,1:].mean()
 
     def build_parameters(self):
         p0 = [" ", "#pragma clang loop(j2) pack array(A) allocate(malloc)"]
@@ -29,9 +36,9 @@ class _3mm_Tuner(BLISS_Tuner):
         return [p0,p1,p2,p3,p4,p5,p6,p7,p8,p9]
 
     def objective(self, configuration, delay):
-        configuration = dict((f'p{ind}', self.parameters[ind][v])
+        configuration = dict((f'P{ind}', self.parameters[ind][v])
                              for (ind,v) in enumerate(configuration))
-        obj = self.plopper.objective(configuration, f" -D{self.args.size}_DATASET")
+        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), f" -D{self.args.size}_DATASET")
         return obj * -1
 
     def build(self, prs=None):
@@ -42,8 +49,5 @@ class _3mm_Tuner(BLISS_Tuner):
         return prs
 
 if __name__ == '__main__':
-    import pdb
-    pdb.set_trace()
-    x = _3mm_Tuner()
-    x.run_BLISS()
+    _3mm_Tuner().run_BLISS()
 
