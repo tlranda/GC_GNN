@@ -111,6 +111,5 @@ class OpenTuner_Tuner(MeasurementInterface):
         print(f"Optimal result: {configuration.data}")
 
 if __name__ == '__main__':
-    ot = OpenTuner_Tuner()
-    ot.main()
+    OpenTuner_Tuner().main()
 

@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 
 import random
+import pathlib
 import warnings
 
 """
@@ -18,9 +19,9 @@ import warnings
 class Syr2kTuner(MeasurementInterface):
     def __init__(self, argparse_args, *args, **kwargs):
         # Load data
-        self.syr2k_data = {"SM": pd.read_csv("oracles/SM/all_SM.csv").sort_values(by=['objective']).reset_index(drop=True),
-                           "XL": pd.read_csv("oracles/XL/all_XL.csv").sort_values(by=['objective']).reset_index(drop=True),
-                           }
+        base_path = pathlib.Path(__file__).parents[2] / 'syr2k_data' / 'oracles'
+        self.syr2k_data = dict((size, pd.read_csv(base_path / size / f"all_{size}.csv").sort_values(by=['objective']).reset_index(drop=True))
+                                for size in ['SM','XL'])
         self.syr2k_cols = [f'p{_}' for _ in range(6)]
         self.syr2k_size = argparse_args.syr2k_size # Which one we'll actually use unless told otherwise
         self.syr2k_results = pd.DataFrame(columns=self.syr2k_cols+['objective','rank']) # Accumulate results
