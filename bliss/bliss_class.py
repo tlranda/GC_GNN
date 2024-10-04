@@ -139,6 +139,8 @@ class BLISS_Tuner():
                            help=f"Most actual observations to make {default_help}")
         bliss.add_argument("--num-initial-sample", type=int, default=self.default_num_initial_sample,
                            help=f"Initial random samples before fitting {default_help}")
+        bliss.add_argument("--test-initial-sample", action='store_true',
+                           help=f"Exit after performing initial samples (for testing only) {default_help}")
         bliss.add_argument("--percentage-sampled-by-acq", type=float, default=self.default_percentage_sampled_by_acq,
                            help=f"Percentage of entire search space sampled in opt_acquisition() {default_help}")
         bliss.add_argument("--delay-min", type=int, default=self.default_delay_min,
@@ -360,6 +362,9 @@ class BLISS_Tuner():
         # Performs the BLISS process to learn the space and model preference
 
         self.initial_sampling()
+        # TEST PATH -- SHOULD TEST ABILITY TO EVALUTE A SMALL FIXED NUMBER OF POINTS
+        if self.args.test_initial_sample:
+            return
         delay = 9999 # Initially set to an arbitrarily large value
         lookahead_counter = 0
         delay_selection_list = []
