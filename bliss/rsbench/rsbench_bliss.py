@@ -10,8 +10,16 @@ from GC_TLA.base_plopper import ECP_Plopper
 from bliss_class import BLISS_Tuner
 
 class RSBENCH_Plopper(ECP_Plopper):
+    size_lookups = {'S': 100000,
+               'SM': 500000,
+               'M': 1000000,
+               'ML': 2500000,
+               'L': 5000000,
+               'XL': 10000000,}
     def runString(self, outfile, dictVal, *args, **kwargs):
-        d_size = args[0]
+        d_size = self.size_lookups[args[0][3:args[0].index('_DATASET')]]
+        import pdb
+        pdb.set_trace()
         return f"{outfile[:-len(self.output_extension)]} -s large -m event -l {d_size}"
 
 class rsbench_Tuner(BLISS_Tuner):
@@ -25,7 +33,10 @@ class rsbench_Tuner(BLISS_Tuner):
         self.plopper.metric = self.metric
 
     def metric(self, timing_list):
-        return np.asarray(timing_list)[:,1:].mean()
+        try:
+            return np.asarray(timing_list)[:,1:].mean()
+        except:
+            return np.asarray(timing_list).mean()
 
     def build_parameters(self):
         p0 = ['128','2','4','8','16','32','48','64','96','192','256']

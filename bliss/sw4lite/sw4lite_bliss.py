@@ -25,6 +25,12 @@ def get_gpu_ids_from_section(section):
     return ids
 
 class SW4Lite_Plopper(ECP_Plopper):
+    mapping = {'S': 3,
+               'SM': 4,
+               'M': 5,
+               'ML': 6,
+               'L': 7,
+               'XL': 8}
     retries = 1
     def set_os_environ(self):
         import os, subprocess
@@ -46,18 +52,18 @@ class SW4Lite_Plopper(ECP_Plopper):
                 "-DSW4_NONBLOCKING -ccbin mpicxx -Xptxas -v -Xcompiler -fopenmp -DSW4_OPENMP "+\
                 f"-Isrc/double -c {outfile} -o {outfile[:-len(self.output_extension)]}.o",
 
-                "nvcc -arch=sm_60 -Xcompiler -fopenmp -Xlinker -arch=sm_60 -ccbin mpicxx -o "+\
+                "nvcc -arch=sm_60 -Xcompiler -fopenmp -ccbin mpicxx -o "+\
                 f"{outfile[:-len(self.output_extension)]} main.o "+\
                 f"{outfile[:-len(self.output_extension)]}.o Source.o SuperGrid.o "+\
                 "GridPointSource.o time_functions_cu.o ew-cfromfort.o EW_cuda.o Sarray.o "+\
                 "device-routines.o EWCuda.o CheckPoint.o Parallel_IO.o EW-dg.o MaterialData.o "+\
                 "MaterialBlock.o Polynomial.o SecondOrderSection.o TimeSeries.o sacsubc.o "+\
-                "curvilinear-c.o -lcuda -lnvcpumath -lnvc -lcudart -llapack -lm -lblas -lgfortran",
+                "curvilinear-c.o -lcuda -lcudart -L/lcrc/project/perfopt/trandall/sw/lapack-3.10.1 -llapack -lm -lblas -lgfortran",
                 ]
         return ";".join(cmds)
 
     def runString(self, outfile, dictVal, *args, **kwargs):
-        d_size = args[0]
+        d_size = self.mapping[args[0][3:args[0].index('_DATASET')]]
         return f"mpirun -np 1 {outfile[:-len(self.output_extension)]} loh1/LOH.1-h100_s{d_size}.in"
 
     def getTime(self, process, dictVal, *args, **kwargs):
@@ -80,7 +86,10 @@ class sw4lite_Tuner(BLISS_Tuner):
         self.plopper.metric = self.metric
 
     def metric(self, timing_list):
-        return np.asarray(timing_list)[:,1:].mean()
+        try:
+            return np.asarray(timing_list)[:,1:].mean()
+        except:
+            return np.asarray(timing_list).mean()
 
     def build_parameters(self):
         p0 = ['64','2','4','8','16','32','48','96','128','192','256']
