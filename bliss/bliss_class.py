@@ -204,7 +204,12 @@ class BLISS_Tuner():
         data_arrays = [self.configurations, self.evaluations, self.lookahead_list, models, acquisitions]
         np_data = np.hstack((np.atleast_2d(data_arrays[0]), *(np.atleast_2d(arr).T for arr in data_arrays[1:])))
 
-        return pd.DataFrame(data=np_data, columns=column_names)
+        basic_frame = pd.DataFrame(data=np_data, columns=column_names)
+        basic_frame['objective'] = basic_frame['objective'].astype(float)
+        if (basic_frame['objective'] < 0).sum() == len(basic_frame):
+            print(f"Inverting results for objective")
+            basic_frame['objective'] *= -1
+        return basic_frame
 
     def save_results(self):
         # Save or display results
@@ -364,6 +369,7 @@ class BLISS_Tuner():
         self.initial_sampling()
         # TEST PATH -- SHOULD TEST ABILITY TO EVALUTE A SMALL FIXED NUMBER OF POINTS
         if self.args.test_initial_sample:
+            self.save_results()
             return
         delay = 9999 # Initially set to an arbitrarily large value
         lookahead_counter = 0

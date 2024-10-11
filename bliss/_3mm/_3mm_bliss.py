@@ -4,7 +4,8 @@ import pathlib
 # Dependent imports
 import numpy as np
 import pandas as pd
-from GC_TLA.base_plopper import Polybench_Plopper
+from ytopt.benchmark.base_plopper import Polybench_Plopper
+#from GC_TLA.base_plopper import Polybench_Plopper
 
 # Local imports
 from bliss_class import BLISS_Tuner
