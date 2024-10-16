@@ -90,6 +90,10 @@ class BLISS_Tuner():
         self.lookahead_list = list()
         self.configurations = list()
         self.evaluations = list()
+        self.real_objective = list()
+        self.used_model = list()
+        self.used_acqval = list()
+        self.performed_calls = 0
 
     """
         IMPLEMENTERS WILL OVERRIDE THESE METHODS
@@ -159,7 +163,8 @@ class BLISS_Tuner():
                            help=f"Random seed {default_help}")
         bliss.add_argument("--csv-output", default=None,
                            help="Filename to save results to (default: print to output as Pandas Dataframe)")
-
+        bliss.add_argument("--checkpoint", default=1, type=int,
+                           help=f"Auto-checkpoint after this many evaluations {default_help}")
         return prs
 
     def parse(self,
@@ -195,16 +200,23 @@ class BLISS_Tuner():
     def get_results(self):
         # Retrieve all tracked experimental results
         column_names = [f'p{_}' for _ in range(len(self.parameters))]
-        column_names.extend(['objective','lookahead','model_name','acquisition_function'])
-        models = ['Initial_Sample']*self.args.num_initial_sample
-        models.extend([str(self.model_list[index]) for index in self.model_selection_list])
+        configs = list()
+        for config in self.configurations:
+            converted_config = list()
+            for idx,element in enumerate(config):
+                converted_config.append(self.parameters[idx][element])
+            configs.append(converted_config)
+        column_names.extend(['objective','actually_measured','lookahead','model_name','acquisition_function'])
         acquisition_fns = ['ei','pi','ucb']
-        acquisitions = ['Random_Sampling']*self.args.num_initial_sample
-        acquisitions.extend([acquisition_fns[self.acqval_list[index]] for index in self.model_selection_list])
-        data_arrays = [self.configurations, self.evaluations, self.lookahead_list, models, acquisitions]
+        acquisitions = [acquisition_fns[self.acqval_list[index]] if index is not None else "Random_Sampling"
+                        for index in self.used_acqval]
+        data_arrays = [configs, self.evaluations, self.real_objective, self.lookahead_list,
+                       self.used_model, acquisitions]
         np_data = np.hstack((np.atleast_2d(data_arrays[0]), *(np.atleast_2d(arr).T for arr in data_arrays[1:])))
 
         basic_frame = pd.DataFrame(data=np_data, columns=column_names)
+        # String boolean conversion is very dumb in Python, but this is semantically correct
+        basic_frame['actually_measured'] = basic_frame['actually_measured'].apply(lambda x: x == 'True')
         basic_frame['objective'] = basic_frame['objective'].astype(float)
         if (basic_frame['objective'] < 0).sum() == len(basic_frame):
             print(f"Inverting results for objective")
@@ -229,8 +241,6 @@ class BLISS_Tuner():
                   configurations: List[List[object]],
                   ) -> Tuple[np.ndarray, np.ndarray]:
         with self.warning_suppressor:
-        #with warnings.catch_warnings():
-        #    warnings.simplefilter("ignore")
             # Returns mu, std
             return model.predict(configurations, return_std=True)
 
@@ -298,10 +308,12 @@ class BLISS_Tuner():
         predict_configurations = self.randomchoice_sample(max(n_sample, 1))
         if acqval == 0:
             scores = self.acquisition_ei(model, predict_configurations)
-        if acqval == 1:
+        elif acqval == 1:
             scores = self.acquisition_pi(model, predict_configurations)
-        if acqval == 2:
+        elif acqval == 2:
             scores = self.acquisition_ucb(model, predict_configurations)
+        else:
+            raise NotImplemented(f"No acquisition function for acqval=={acqval}")
         ix = np.argmax(scores)
         return predict_configurations[ix]
 
@@ -317,21 +329,23 @@ class BLISS_Tuner():
 
         if len(self.evaluations) < delay:
             return 0
-        lookahead_selection_list = []
+        lookahead_selection_list = list()
         j = 0
         while j < self.args.lookahead_window:
             # Collect a real evaluation
             opt = self.opt_acquisition(model, acqval)
             actual = self.objective(opt, delay)
             estimated, _ = self.surrogate(model, [opt]) # For error calculation
+            self.used_model.append(str(model))
+            self.used_acqval.append(acqval)
+            self.real_objective.append(True)
             self.configurations.append(opt)
             self.evaluations.append(actual)
+            self.performed_calls += 1
             # No lookaheads are performed prior to this evaluation
             self.lookahead_list.append(0)
             self.model_selection_list.append(index)
             with self.warning_suppressor:
-            #with warnings.catch_warnings():
-            #    warings.simplefilter('ignore')
                 model.fit(self.configurations, self.evaluations)
             # Update lookahead selection list
             observed_error = abs(abs(estimated[0])-abs(actual))
@@ -352,16 +366,20 @@ class BLISS_Tuner():
             initial model fitting
         """
         self.configurations.extend(self.randomchoice_sample(self.args.num_initial_sample))
+        self.used_model.extend(["initial_sampling"] * self.args.num_initial_sample)
+        self.used_acqval.extend([None] * self.args.num_initial_sample)
+        self.real_objective.extend([True] * self.args.num_initial_sample)
+        self.performed_calls += self.args.num_initial_sample
+        # No lookahead performed for this evaluation, but no model to select either
+        self.lookahead_list.extend([-1] * self.args.num_initial_sample)
         # Evaluate all initial configurations
         for config in self.configurations:
             self.evaluations.append(self.objective(config, 9999))
-            self.lookahead_list.append(-1) # No lookahead performed for this evaluation, but no model to select either
         # Fit all models on initial data
         for m in self.model_list:
             with self.warning_suppressor:
-            #with warnings.catch_warnings():
-            #    warnings.simplefilter('ignore')
-                m.fit(self.configurations, self.evaluations)
+                m.fit(self.configurations,
+                      self.evaluations)
 
     def run_BLISS(self):
         # Performs the BLISS process to learn the space and model preference
@@ -380,7 +398,7 @@ class BLISS_Tuner():
         # Note that some other functions can extend self.evaluations, including
         # initial_sampling()
         # get_lookahead_status()
-        while len(self.evaluations) < self.args.max_calls:
+        while self.performed_calls < self.args.max_calls:
             model_min_list = []
             if i == 0:
                 # First iteration, try everything once
@@ -390,23 +408,25 @@ class BLISS_Tuner():
                     self.model_sampling_list[index].append(actual*-1)
                     est, _ = self.surrogate(model, [opt]) # Result used in maturity/delay update (estimation error should be taken prior to refitting)
                     self.lookahead_list.append(0) # No lookahead performed for this evaluation
+                    self.used_model.append(str(model))
+                    self.used_acqval.append(acqval)
+                    self.real_objective.append(True)
                     self.configurations.append(opt)
                     self.evaluations.append(actual)
+                    self.performed_calls += 1
                     with self.warning_suppressor:
-                    #with warnings.catch_warnings():
-                    #    warnings.simplefilter('ignore')
                         model.fit(self.configurations, self.evaluations)
                     self.model_selection_list.append(index)
                     i += 1
             else:
                 # Choices become increasingly weighted by what works best
                 # However, we exclude lookahead evaluations from biasing the list
-                index = random.choice(model_indices)
+                index = random.choice(self.model_selection_list) # model_indices
                 model = self.model_list[index]
                 acqval = self.acqval_list[index]
                 # Select the point with this model/acqval combination
                 opt = self.opt_acquisition(model, acqval)
-                index = random.choice(model_indices)
+                index = random.choice(self.model_selection_list) # model_indices
                 model = self.model_list[index]
                 acqval = self.acqval_list[index]
                 # Select the point with this model/acqval combination
@@ -418,27 +438,31 @@ class BLISS_Tuner():
                     # Lookahead is ONLY permitted when models are very accurate,
                     # so its data is treated as ground truth by BLISS
                     est, _ = self.surrogate(model, [opt])
+                    self.used_model.append(str(model))
+                    self.used_acqval.append(acqval)
+                    self.real_objective.append(False)
                     self.configurations.append(opt)
                     self.evaluations.append(est[0])
                     self.lookahead_list.append(1) # Lookahead utilized
                     with self.warning_suppressor:
-                    #with warnings.catch_warnings():
-                    #    warnings.simplefilter('ignore')
                         model.fit(self.configurations,
                                   self.evaluations)
                     lookahead_counter -= 1
                 elif lookahead_counter == 0:
                     # Perform an actual evaluation on this model
                     actual = self.objective(opt, delay)
+                    self.used_model.append(str(model))
+                    self.used_acqval.append(acqval)
+                    self.real_objective.append(True)
                     self.configurations.append(opt)
                     self.evaluations.append(actual)
+                    self.performed_calls += 1
                     self.lookahead_list.append(0) # No lookahead performed for this evaluation
-                    self.model_sampling_list[index].append(actual*-1) # Model achieved this performance
+                    self.model_sampling_list[index].append(actual*(-1)) # Model achieved this performance
                     est, _ = self.surrogate(model, [opt]) # Result used in maturity/delay update (estimation error should be taken prior to refitting)
                     with self.warning_suppressor:
-                    #with warnings.catch_warnings():
-                    #    warnings.simplefilter('ignore')
-                        model.fit(self.configurations, self.evaluations)
+                        model.fit(self.configurations,
+                                  self.evaluations)
                     # Bias the model selection list:
                     # For each model, load their best (minimal) result
                     for m in self.model_sampling_list:
@@ -457,6 +481,9 @@ class BLISS_Tuner():
             if len(self.evaluations) == self.args.delay_min:
                 delay = self.args.delay_min + int(np.mean(delay_selection_list))
                 delay_list.append(delay)
+            # Checkpoint periodically in case a job is killed before it completes
+            if (i % self.args.checkpoint) == 0:
+                self.save_results()
         self.save_results()
 
 if __name__ == '__main__':
