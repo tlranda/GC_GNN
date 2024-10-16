@@ -32,8 +32,8 @@ class Syr2k_Tuner(BLISS_Tuner):
     def build(self, prs=None):
         prs = super().build(prs)
         syr2k = prs.add_argument_group("Syr2k")
-        syr2k.add_argument("--dataset", type=str, default=None, required=True,
-                           help="Dataset of exhaustive data")
+        syr2k.add_argument("--size", choices=['SM','XL'], required=True,
+                           help="Dataset of exhaustive data to use when looking up objective values")
         return prs
 
 if __name__ == '__main__':

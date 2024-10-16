@@ -17,10 +17,9 @@ class RSBENCH_Plopper(ECP_Plopper):
                'L': 5000000,
                'XL': 10000000,}
     def runString(self, outfile, dictVal, *args, **kwargs):
-        d_size = self.size_lookups[args[0][3:args[0].index('_DATASET')]]
         import pdb
         pdb.set_trace()
-        return f"{outfile[:-len(self.output_extension)]} -s large -m event -l {d_size}"
+        return f"{outfile[:-len(self.output_extension)]} -s large -m event -l {args[0]}"
 
 class rsbench_Tuner(BLISS_Tuner):
     default_percentage_sampled_by_acq = 0.10
@@ -53,7 +52,7 @@ class rsbench_Tuner(BLISS_Tuner):
     def objective(self, configuration, delay):
         configuration = dict((f'P{ind}', self.parameters[ind][v])
                              for (ind,v) in enumerate(configuration))
-        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), f" -D{self.args.size}_DATASET")
+        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), self.args.size)
         return obj * -1
 
     def build(self, prs=None):

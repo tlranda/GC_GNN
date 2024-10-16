@@ -4,37 +4,10 @@ import pathlib
 # Dependent imports
 import numpy as np
 import pandas as pd
-#from GC_TLA.base_plopper import ECP_Plopper
 from ytopt.benchmark.amg_exp.problem import AMG_Plopper
 
 # Local imports
 from bliss_class import BLISS_Tuner
-
-"""
-class AMG_Plopper(ECP_Plopper):
-    def compileSTring(self, outfile, dictVal, *args, **kwargs):
-        compile_cmd = "mpicc -fopenmp -std=c99 -fno-unroll-loops -O3 -mllvm -polly -mllvm "+\
-                          "-polly-process-unprofitable -mllvm -polly-use-llvm-names -ffast-math "+\
-                          f"-march=native -o {outfile[:-len(self.output_extension)]} {outfile} -I./ "+\
-                          "-I./struct_mv -I./sstruct_mv -I./IJ_mv -I./seq_mv -I./parcsr_mv -I./utilities "+\
-                          "-I./parcsr_ls -I./krylov -DTIMER_USE_MPI -DHYPRE_USING_OPENMP -DHYPRE_LONG_LONG "+\
-                          "-DHYPRE_NO_GLOBAL_PARTITION -DHYPRE_USING_PERSISTENT_COMM -DHYPRE_HOPSCOTCH "+\
-                          "-DHYPRE_BIGINT -DHYPRE_TIMING -L./parcsr_ls -L./parcsr_mv -L./IJ_mv -L./seq_mv "+\
-                          "-L./sstruct_mv -L./struct_mv -L./krylov -L./utilities -lparcsr_ls -lparcsr_mv "+\
-                          "-lseq_mv -lsstruct_mv -lIJ_mv -lHYPRE_struct_mv -lkrylov -lHYPRE_utilities -lm "
-        return compile_cmd
-    def runString(self, outfile, dictVal, *args, **kwargs):
-        d_size = args[0]
-        return f"mpirun -np 1 {outfile[:-len(self.output_extension)]} -laplace -n {d_size} {d_size} {d_size} -P 1 1 1"
-    def getTime(self, process, dictVal, *args, **kwargs):
-        try:
-            return float(process.stdout.decode('utf-8').split('\n')[-1].split(' ')[-1])
-        except ValueError:
-            try:
-                return float(process.stderr.decode('utf-8').split('\n')[-1].split(' ')[-1])
-            except ValueError:
-                return None
-"""
 
 class amg_Tuner(BLISS_Tuner):
     default_percentage_sampled_by_acq = 0.10

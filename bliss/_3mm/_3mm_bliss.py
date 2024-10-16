@@ -5,7 +5,6 @@ import pathlib
 import numpy as np
 import pandas as pd
 from ytopt.benchmark.base_plopper import Polybench_Plopper
-#from GC_TLA.base_plopper import Polybench_Plopper
 
 # Local imports
 from bliss_class import BLISS_Tuner
@@ -17,7 +16,9 @@ class _3mm_Tuner(BLISS_Tuner):
     def __init__(self, *args):
         super().__init__(*args)
         template = pathlib.Path('./mmp.c').resolve()
-        self.plopper = Polybench_Plopper(str(template), str(template.parents[0]), output_extension='.c')
+        self.plopper = Polybench_Plopper(str(template),
+                                         str(template.parents[0]),
+                                         output_extension='.c')
         self.plopper.metric = self.metric
 
     def metric(self, timing_list):
