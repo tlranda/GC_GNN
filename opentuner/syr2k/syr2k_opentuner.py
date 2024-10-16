@@ -11,24 +11,30 @@ import random
 import pathlib
 import warnings
 
+from opentuner_class import OpenTuner_Tuner
+
 """
     Based on demo: https://opentuner.org/tutorial/gettingstarted,
     adapted to lookup results from existing dataset
 """
 
-class Syr2kTuner(MeasurementInterface):
-    def __init__(self, argparse_args, *args, **kwargs):
+class Syr2kTuner(OpenTuner_Tuner):
+    def build(self):
+        prs, opentuner_args, extra_args = super().build()
+        syr2k = prs.add_argument_group('Syr2k')
+        syr2k.add_argument('--size', choices=['SM','XL'], default='SM', help="Pick a syr2k size (default: %(default)s)")
+        return prs, opentuner_args, extra_args
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         # Load data
         base_path = pathlib.Path(__file__).parents[2] / 'syr2k_data' / 'oracles'
-        self.syr2k_data = dict((size, pd.read_csv(base_path / size / f"all_{size}.csv").sort_values(by=['objective']).reset_index(drop=True))
-                                for size in ['SM','XL'])
+        self.syr2k_size = self.args.size # Which one we'll actually use unless told otherwise
+        self.syr2k_data = pd.read_csv(base_path / self.args.size / f"all_{self.args.size}.csv").sort_values(by=['objective']).reset_index(drop=True)
         self.syr2k_cols = [f'p{_}' for _ in range(6)]
-        self.syr2k_size = argparse_args.syr2k_size # Which one we'll actually use unless told otherwise
-        self.syr2k_results = pd.DataFrame(columns=self.syr2k_cols+['objective','rank']) # Accumulate results
-        self.syr2k_output = argparse_args.output # Own means to log results rather than going through OpenTuner
-        # Repackage
-        args = tuple([argparse_args] + list(args))
-        super().__init__(*args, **kwargs)
+        self.configure_desired_result(self.syr2k_cols+['objective','rank'])
+        self.opentuner_results = pd.DataFrame(columns=self.opentuner_params)
 
     def manipulator(self):
         """
@@ -54,44 +60,17 @@ class Syr2kTuner(MeasurementInterface):
         """
         cfg = desired_result.configuration.data
         # Look up this config
-        syr2k = self.syr2k_data[self.syr2k_size]
-        if 'size' in cfg:
-            sry2k = self.syr2k_data[cfg['size']]
         # OpenTuner is fond of reordering the columns, ensure they come in correct order
         search = tuple([cfg[_] for _ in self.syr2k_cols])
-        n_matches = (syr2k[self.syr2k_cols].astype(str) == search).sum(1).to_numpy()
+        n_matches = (self.syr2k_data[self.syr2k_cols].astype(str) == search).sum(1).to_numpy()
         full_match_idx = np.nonzero(n_matches == len(self.syr2k_cols))[0]
-        result_time = float(syr2k.loc[full_match_idx[0],'objective'])
+        result_time = float(self.syr2k_data.loc[full_match_idx[0],'objective'])
         # Set column values
         cfg['objective'] = result_time
         cfg['rank'] = full_match_idx[0]
-        new_result = pd.DataFrame(cfg, columns=self.syr2k_cols+['objective','rank'],
-                                  index=[len(self.syr2k_results)])
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            # This will generate a warning the first time, just catch it
-            self.syr2k_results = pd.concat((self.syr2k_results,
-                                            new_result))
+        self.add_opentuner_result(desired_result)
         return Result(time=result_time)
 
-    def save_final_config(self, configuration):
-        """
-        Called at the end of tuning
-        """
-        if self.syr2k_output is None:
-            print(self.syr2k_results)
-            print("Optimal result:", configuration.data)
-        else:
-            self.syr2k_results.to_csv(self.syr2k_output,index=False)
-            print("Optimal result:", configuration.data)
-
 if __name__ == '__main__':
-    argparser = opentuner.default_argparser()
-    argparser.add_argument('--seed', type=int, default=1234, help="Random seed for builtin random and numpy.random (default %(default)s)")
-    argparser.add_argument('--output', default=None, help="File to save results to (default: Print)")
-    argparser.add_argument('--syr2k-size', choices=['SM','XL'], default='SM', help="Pick a syr2k size (default: %(default)s)")
-    args = argparser.parse_args()
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    Syr2kTuner.main(args)
+    Syr2kTuner().main(args)
 
