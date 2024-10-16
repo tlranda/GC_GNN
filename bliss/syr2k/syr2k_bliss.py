@@ -9,7 +9,7 @@ class Syr2k_Tuner(BLISS_Tuner):
     def __init__(self, *args):
         super().__init__(*args)
         # Load exhaustive dataset
-        self.dataset = pd.read_csv(self.args.dataset).sort_values(by=['objective']).reset_index(drop=True)
+        self.dataset = pd.read_csv(f"../../syr2k_data/oracles/{self.args.size}/all_{self.args.size}.csv").sort_values(by=['objective']).reset_index(drop=True)
         self.datacols = [f'p{_}' for _ in range(6)]
 
     def build_parameters(self):
