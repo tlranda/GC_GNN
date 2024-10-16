@@ -13,7 +13,6 @@ import warnings
 
 from opentuner_class import OpenTuner_Tuner
 from ytopt.benchmark.base_plopper import Polybench_Plopper
-#from GC_TLA.base_plopper import Polybench_Plopper
 
 """
     Based on demo: https://opentuner.org/tutorial/gettingstarted,
@@ -27,21 +26,22 @@ class _3mm_Tuner(OpenTuner_Tuner):
     def build(self):
         prs, opentuner_args, extra_args = super().build()
         _3mm = prs.add_argument_group('3MM')
-        _3mm.add_argument('--dataset-size', choices=['SM','XL'], default=None, required=True,
+        _3mm.add_argument('--size', choices=['SM','XL'], default=None, required=True,
                           help="Problem size to tune")
         return prs, opentuner_args, extra_args
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.dataset_size = self.args.dataset_size
+        self.dataset_size = self.args.size
 
         template = pathlib.Path('./mmp.c').resolve()
-        self.plopper = Polybench_Plopper(str(template), str(template.parents[0]), output_extension='.c')
+        self.plopper = Polybench_Plopper(str(template), str(template.parents[0]),
+                                         output_extension='.c')
         self.plopper.metric = self.pmetric
 
         self.configure_desired_result([f'p{_}' for _ in range(10)]+['objective'])
-        self.opentuner_results = pd.DataFrame(columns=sorted(self.opentuner_params))
+        self.opentuner_results = pd.DataFrame(columns=self.opentuner_params)
 
     def manipulator(self):
         """

@@ -112,18 +112,25 @@ class OpenTuner_Tuner(MeasurementInterface):
     def configure_desired_result(self, params):
         # Call this during __init__ or manipulator() to set up the parameters that are saved from your desired_result in add_opentuner_result()
         if hasattr(self,'opentuner_params'):
-            self.opentuner_params.add(set(params))
+            exists = set(self.opentuner_params)
         else:
-            self.opentuner_params = set(params)
+            exists = set()
+        new = set(params).difference(exists)
+        if hasattr(self,'opentuner_params'):
+            self.opentuner_params.extend([_ for _ in params if _ in new])
+        else:
+            self.opentuner_params = [_ for _ in params if _ in new]
 
     def add_opentuner_result(self, desired_result, **kwargs):
         cfg = desired_result.configuration.data
         cfg.update(kwargs)
-        cfg = dict((k,cfg[k]) for k in sorted(self.opentuner_params))
-        new_result = pd.DataFrame(cfg, columns=sorted(self.opentuner_params),
+        cfg = dict((k,cfg[k]) for k in self.opentuner_params)
+        new_result = pd.DataFrame(cfg, columns=self.opentuner_params,
                                   index=[len(self.opentuner_results)])
         self.opentuner_results = pd.concat((self.opentuner_results,
                                             new_result))
+        if self.args.csv_output is not None:
+            self.opentuner_results.to_csv(self.args.csv_output, index=False)
 
     def save_final_config(self, configuration):
         # Called at the end of tuning
