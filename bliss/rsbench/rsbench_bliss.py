@@ -54,8 +54,6 @@ class rsbench_Tuner(BLISS_Tuner):
                         'ML': 2500000,
                         'L': 5000000,
                         'XL': 10000000,}
-        import pdb
-        pdb.set_trace()
         obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), size_lookups[self.args.size])
         return obj * -1
 
