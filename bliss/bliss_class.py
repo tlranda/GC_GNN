@@ -219,7 +219,6 @@ class BLISS_Tuner():
         basic_frame['actually_measured'] = basic_frame['actually_measured'].apply(lambda x: x == 'True')
         basic_frame['objective'] = basic_frame['objective'].astype(float)
         if (basic_frame['objective'] < 0).sum() == len(basic_frame):
-            print(f"Inverting results for objective")
             basic_frame['objective'] *= -1
         return basic_frame
 

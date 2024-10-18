@@ -38,9 +38,17 @@ class amg_Tuner(BLISS_Tuner):
         return [p0,p1,p2,p3,p4,p5,p6,p7,p8]
 
     def objective(self, configuration, delay):
+        amg_sizes = {
+            "S": 50,
+            "SM": 75,
+            "M": 100,
+            "ML": 125,
+            "L": 150,
+            "XL": 175,
+        }
         configuration = dict((f'P{ind}', self.parameters[ind][v])
                              for (ind,v) in enumerate(configuration))
-        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), f" -D{self.args.size}_DATASET")
+        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), amg_sizes[self.args.size])
         return obj * -1
 
     def build(self, prs=None):

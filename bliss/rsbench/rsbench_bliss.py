@@ -4,22 +4,17 @@ import pathlib
 # Dependent imports
 import numpy as np
 import pandas as pd
-from GC_TLA.base_plopper import ECP_Plopper
+from ytopt.benchmark.rsbench_exp.problem import RSBench_Plopper
+#from GC_TLA.base_plopper import ECP_Plopper
 
 # Local imports
 from bliss_class import BLISS_Tuner
 
+"""
 class RSBENCH_Plopper(ECP_Plopper):
-    size_lookups = {'S': 100000,
-               'SM': 500000,
-               'M': 1000000,
-               'ML': 2500000,
-               'L': 5000000,
-               'XL': 10000000,}
     def runString(self, outfile, dictVal, *args, **kwargs):
-        import pdb
-        pdb.set_trace()
-        return f"{outfile[:-len(self.output_extension)]} -s large -m event -l {args[0]}"
+        return f"{outfile[:-len(self.output_extension)]} -s large -m event -l {self.size_lookups[args[0]]}"
+"""
 
 class rsbench_Tuner(BLISS_Tuner):
     default_percentage_sampled_by_acq = 0.10
@@ -28,7 +23,8 @@ class rsbench_Tuner(BLISS_Tuner):
     def __init__(self, *args):
         super().__init__(*args)
         template = pathlib.Path('./mmp.c').resolve()
-        self.plopper = RSBENCH_Plopper(str(template), str(template.parents[0]), output_extension='.c')
+        self.plopper = RSBench_Plopper(str(template), str(template.parents[0]), output_extension='.c',
+                                       ignore_runtime_failure=True)
         self.plopper.metric = self.metric
 
     def metric(self, timing_list):
@@ -52,7 +48,15 @@ class rsbench_Tuner(BLISS_Tuner):
     def objective(self, configuration, delay):
         configuration = dict((f'P{ind}', self.parameters[ind][v])
                              for (ind,v) in enumerate(configuration))
-        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), self.args.size)
+        size_lookups = {'S': 100000,
+                        'SM': 500000,
+                        'M': 1000000,
+                        'ML': 2500000,
+                        'L': 5000000,
+                        'XL': 10000000,}
+        import pdb
+        pdb.set_trace()
+        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), size_lookups[self.args.size])
         return obj * -1
 
     def build(self, prs=None):
