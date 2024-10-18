@@ -140,6 +140,15 @@ class OpenTuner_Tuner(MeasurementInterface):
             self.opentuner_results.to_csv(self.args.csv_output, index=False)
         print(f"Optimal result: {configuration.data}")
 
+    def extra_convergence_criteria(self, result):
+        """
+        The extra convergence criteria which returns True if the
+        current result is acceptable by the user -- this prevents
+        the actual max time / trials from being used so we GUARANTEE
+        the dumb thing is always false
+        """
+        return False
+
     def main(self):
         super().main(self.args)
 

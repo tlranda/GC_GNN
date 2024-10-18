@@ -1,7 +1,6 @@
 import opentuner
 from opentuner import ConfigurationManipulator
 from opentuner import EnumParameter
-from opentuner import MeasurementInterface
 from opentuner import Result
 
 import pandas as pd
@@ -72,5 +71,5 @@ class Syr2kTuner(OpenTuner_Tuner):
         return Result(time=result_time)
 
 if __name__ == '__main__':
-    Syr2kTuner().main(args)
+    Syr2kTuner().main()
 
