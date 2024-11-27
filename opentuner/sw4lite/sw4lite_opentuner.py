@@ -12,8 +12,7 @@ import pathlib
 import warnings
 
 from opentuner_class import OpenTuner_Tuner
-from ytopt.benchmark.base_plopper import Polybench_Plopper
-#from GC_TLA.base_plopper import Polybench_Plopper
+from ytopt.benchmark.sw4lite_exp.problem import SW4Lite_Plopper as ECP_Plopper
 
 """
     Based on demo: https://opentuner.org/tutorial/gettingstarted,
@@ -21,8 +20,20 @@ from ytopt.benchmark.base_plopper import Polybench_Plopper
 """
 
 class SW4Lite_Tuner(OpenTuner_Tuner):
+    lookup = {
+        'NN': 1,
+        'N':  2,
+        'S':  3,
+        'SM': 4,
+        'M':  5,
+        'ML': 6,
+        'L':  7,
+        'XL': 8,
+        'H':  9,
+        'XH': 10,
+    }
     def pmetric(self, timing_list):
-        return np.asarray(timing_list)[:,1:].mean()
+        return np.atleast_2d(timing_list)[:,1:].mean()
 
     def build(self):
         prs, opentuner_args, extra_args = super().build()
@@ -34,10 +45,10 @@ class SW4Lite_Tuner(OpenTuner_Tuner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.dataset_size = self.args.dataset_size
+        self.dataset_size = self.lookup[self.args.dataset_size]
 
         template = pathlib.Path('./mmp.c').resolve()
-        self.plopper = Polybench_Plopper(str(template), str(template.parents[0]), output_extension='.c')
+        self.plopper = ECP_Plopper(str(template), str(template.parents[0]), output_extension='.c')
         self.plopper.metric = self.pmetric
 
         self.configure_desired_result([f'p{_}' for _ in range(8)]+['objective'])
@@ -57,7 +68,7 @@ class SW4Lite_Tuner(OpenTuner_Tuner):
                 EnumParameter('p4', [' ',"#pragma omp parallel for"]),
                 EnumParameter('p5', [' ',"#pragma unroll (6)","#pragma unroll"]),
                 EnumParameter('p6', ["#pragma omp for","#pragma omp for nowait"]),
-                EnumParameter('p7', ["MPI_BARRIER(MPI_COMM_WORLD);",' ']),
+                EnumParameter('p7', ["MPI_Barrier(MPI_COMM_WORLD);",' ']),
                 ]
         for parameter in parameters:
             manipulator.add_parameter(parameter)
@@ -69,7 +80,7 @@ class SW4Lite_Tuner(OpenTuner_Tuner):
         """
         cfg = desired_result.configuration.data
         cfg_params = dict((k.upper(),cfg[k]) for k in [f'p{_}' for _ in range(8)])
-        result_time = self.plopper.findRuntime(list(cfg_params.values()), list(cfg_params.keys()), f" -D{self.dataset_size}_DATASET")
+        result_time = self.plopper.findRuntime(list(cfg_params.values()), list(cfg_params.keys()), self.dataset_size)
         cfg['objective'] = result_time
         self.add_opentuner_result(desired_result)
         return Result(time=result_time)
