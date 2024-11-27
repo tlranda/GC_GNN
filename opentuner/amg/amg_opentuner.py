@@ -12,7 +12,8 @@ import pathlib
 import warnings
 
 from opentuner_class import OpenTuner_Tuner
-from ytopt.benchmark.base_plopper import ECP_Plopper
+#from ytopt.benchmark.base_plopper import ECP_Plopper
+from ytopt.benchmark.amg_exp.problem import AMG_Plopper as ECP_Plopper
 
 """
     Based on demo: https://opentuner.org/tutorial/gettingstarted,
@@ -20,8 +21,17 @@ from ytopt.benchmark.base_plopper import ECP_Plopper
 """
 
 class AMG_Tuner(OpenTuner_Tuner):
+    size_lookups = {
+        'S': 50,
+        'SM': 75,
+        'M': 100,
+        'ML': 125,
+        'L': 150,
+        'XL': 175,
+        'H': 200
+    }
     def pmetric(self, timing_list):
-        return np.asarray(timing_list)[:,1:].mean()
+        return np.atleast_2d(timing_list)[:,1:].mean()
 
     def build(self):
         prs, opentuner_args, extra_args = super().build()
@@ -33,10 +43,10 @@ class AMG_Tuner(OpenTuner_Tuner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.dataset_size = self.args.dataset_size
+        self.dataset_size = self.size_lookups[self.args.dataset_size]
 
         template = pathlib.Path('./amg2013.c').resolve()
-        self.plopper = Polybench_Plopper(str(template), str(template.parents[0]), output_extension='.c')
+        self.plopper = ECP_Plopper(str(template), str(template.parents[0]), output_extension='.c')
         self.plopper.metric = self.pmetric
 
         self.configure_desired_result([f'p{_}' for _ in range(9)]+['objective'])
