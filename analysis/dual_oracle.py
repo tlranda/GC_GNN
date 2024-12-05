@@ -1,3 +1,4 @@
+# Scatter points using an oracle for best truth and another oracle for "assumed" truth
 import numpy as np, pandas as pd
 import matplotlib
 font = {'size': 14, 'family': 'serif',}

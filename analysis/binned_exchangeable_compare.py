@@ -1,3 +1,4 @@
+# Binned histogram: X = truth(oracle) rank, Y = comparison(experimental tuner) rank
 import numpy as np, pandas as pd
 import matplotlib
 font = {'size': 14, 'family': 'serif',}
