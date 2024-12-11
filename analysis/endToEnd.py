@@ -1,5 +1,11 @@
 # To be evaluated with collation-ified results from Arafat's IR predictions
-# See reconfigure_from_mmp.py to convert files before running this script
+# See reconfigure_from_mmp.py to convert files before running this script,
+# but the minimum requirements are:
+#   * Objective column ('objective')
+#   * Rank column (--rank-column: default 'predicted')
+#   * Parameterization columns ('size' and a number of parameters in format r'p\d+')
+#   * There is no need to filter/prune out other columns, they will not be referenced
+#   * Every parameterization represented in --searches must have a matchable entry in rankcoll
 
 import argparse
 import pathlib
@@ -22,8 +28,10 @@ def build():
             help="Column from [rankcoll] to use as prediction for sorting (default: %(default)s)")
     prs.add_argument("--searches", type=pathlib.Path, nargs="+", required=True,
             help="CSVs that define searches that exist within [rankcoll] to be re-ranked")
-    prs.add_argument("--y", choices=['rank','objective'], default='rank',
+    prs.add_argument("--y", choices=['rank','objective'], default='objective',
             help="Y-axis value for charts (default: %(default)s)")
+    prs.add_argument("--print-all", action='store_true',
+            help="Print arrays for ordering (may lead to excessive text output, default: %(default)s)")
     return prs
 
 def parse(args=None, prs=None):
@@ -96,16 +104,19 @@ def main(args=None):
         initial_order = search.index.tolist()
         # Correct sequence of GC generations for best-to-worst results
         oracle_order = oracle(search_name, search, rcoll, args)
-        print(f"Oracle order: {oracle_order}")
+        if args.print_all:
+            print(f"Oracle order: {oracle_order}")
         # Predicted sequence of GC generations for best-to-worst results
         reranked_order = rerank(search_name, search, rcoll, args)
-        print(f"Reranked order: {reranked_order}")
+        if args.print_all:
+            print(f"Reranked order: {reranked_order}")
 
         # Rephrase above as 'which oracle value did you actually pull?'
         initial_as_oracle_order = list(map(lambda o: np.where(reranked_order == o)[0][0], initial_order))
         rerank_as_oracle_order = list(map(lambda o: np.where(reranked_order == o)[0][0], oracle_order))
-        print(f"Oracle values in initial order: {initial_as_oracle_order}")
-        print(f"Oracle values in rerank order: {rerank_as_oracle_order}")
+        if args.print_all:
+            print(f"Oracle values in initial order: {initial_as_oracle_order}")
+            print(f"Oracle values in rerank order: {rerank_as_oracle_order}")
 
 
         # === METRICS ===
@@ -132,13 +143,15 @@ def main(args=None):
 
 
         # === PLOTS ===
+
         fig, ax = plt.subplots()
+        subset_idx = get_subset_index(search_name, search, rcoll, args)
         if args.y == 'rank':
             y1 = initial_as_oracle_order
             y2 = rerank_as_oracle_order
             ylabel = 'Oracle goodness (lower is better)'
         else:
-            subset = rcoll.loc[get_subset_index(search_name, search, rcoll, args), 'objective']
+            subset = rcoll.loc[subset_idx, 'objective']
             y1 = subset.to_numpy()[initial_order]
             y2 = subset.to_numpy()[reranked_order]
             ax.scatter(range(len(initial_order)), subset.to_numpy()[oracle_order], label='oracle')
@@ -151,6 +164,13 @@ def main(args=None):
         ax.set_ylabel(ylabel)
         ax.set_title(f"Reranking for Search {search_name.stem}")
         ax.legend()
+
+        fig2, ax2 = plt.subplots()
+        ax2.scatter(rcoll.loc[subset_idx, 'original'], rcoll.loc[subset_idx,'predicted'])
+        ax2.set_xlabel('True performance bucket')
+        ax2.set_ylabel('Predicted performance bucket')
+        ax2.set_title(f'Bucket utilizations for Search {search_name.stem}')
+
     plt.show()
 
 if __name__ == "__main__":
