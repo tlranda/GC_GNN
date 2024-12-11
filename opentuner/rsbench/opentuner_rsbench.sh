@@ -1,7 +1,12 @@
 #!/bin/bash
 
-source /home/trandall/set_swing_environment.sh;
-module remove nvhpc;
+EXECUTE="${EXECUTE-1}";
+MODULE="${MODULE-1}";
+
+if [[ ${MODULE} -eq 1 ]]; then
+    source /home/trandall/set_swing_environment.sh;
+    module remove nvhpc;
+fi
 cd /home/trandall/GC_GNN/opentuner/rsbench/;
 
 #techniques=$( PYTHONPATH=.. python3 rsbench_opentuner.py -lt --size SM );
@@ -15,10 +20,12 @@ for technique in ${techniques[@]}; do
             if [[ -f "${expect}" ]]; then
                 todo="wc -l ${expect}";
             else
-                todo="PYTHONPATH=.. python3 rsbench_opentuner.py --size ${size} --random-seed ${seed} --test-limit 200 --technique ${technique} --csv-output ${expect}";
+                todo="PYTHONPATH=.. python3 rsbench_opentuner.py --dataset-size ${size} --random-seed ${seed} --test-limit 200 --technique ${technique} --csv-output ${expect}";
             fi
             echo $todo;
-            #eval $todo;
+            if [[ "${todo}" == "wc -l "* || ${EXECUTE} -eq 1 ]]; then
+                eval $todo;
+            fi
             if [[ $? -ne 0 ]]; then
                 echo "[ $(date) ] Failed OpenTuner ${size} ${seed} ${technique}" >> opentuner_failures.log;
             fi
