@@ -1,3 +1,4 @@
+# Draws figures of GC data reranked by other CSVs
 import argparse
 import pathlib
 import re
