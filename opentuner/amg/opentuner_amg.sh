@@ -11,7 +11,8 @@ cd /home/trandall/GC_GNN/opentuner/amg/;
 
 
 #techniques=$( PYTHONPATH=.. python3 amg_opentuner.py -lt --dataset-size SM );
-techniques=( "AUCBanditMetaTechniqueB" "NormalGreedyMutation10" "ga-PX" );
+#techniques=( "AUCBanditMetaTechniqueB" "NormalGreedyMutation10" "ga-PX" );
+techniques=( "NormalGreedyMutation10" );
 for technique in ${techniques[@]}; do
     for size in "SM" "XL"; do
         mkdir -p opentuner_results/${technique}/${size};

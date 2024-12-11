@@ -10,7 +10,8 @@ fi
 cd /home/trandall/GC_GNN/opentuner/rsbench/;
 
 #techniques=$( PYTHONPATH=.. python3 rsbench_opentuner.py -lt --size SM );
-techniques=( "AUCBanditMetaTechniqueB" "NormalGreedyMutation10" "ga-PX" );
+#techniques=( "AUCBanditMetaTechniqueB" "NormalGreedyMutation10" "ga-PX" );
+techniques=( "NormalGreedyMutation10" );
 for technique in ${techniques[@]}; do
     for size in "SM" "XL"; do
         mkdir -p opentuner_results/${technique}/${size};
