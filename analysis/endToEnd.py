@@ -72,23 +72,29 @@ def get_subset_index(searchname, search, lookup, args):
     match_cols = ['size']+[_ for _ in search.columns if re.match(r'p\d+', _) is not None]
     strsearch = search[match_cols].astype(str)
     strlookup = lookup[match_cols].astype(str)
+    unmatched = []
     for (idx, row) in tqdm.tqdm(strsearch.iterrows(), total=len(strsearch)):
         lookup = tuple(row)
         match = np.where((strlookup == lookup).sum(axis=1) == len(match_cols))[0]
         if len(match) == 0:
-            raise ValueError(f"Could not find idx {idx} from '{searchname}' in {args.rankcoll} (configuration: {row})")
+            unmatched.append(idx)
+            continue
         index[idx] = match[0]
-    return index
+    if len(unmatched) > 0:
+        #raise ValueError(f"Could not find {len(unmatched)} / {len(search)} searches {unmatched} from '{searchname}' in {args.rankcoll}")
+        warnings.warn(f"Could not find {len(unmatched)} / {len(search)} searches {unmatched} from '{searchname}' in {args.rankcoll}", UserWarning)
+        index = index[:-len(unmatched)]
+    return index, unmatched
 
 def rerank(searchname, search, reranker, args):
     # Rerank search using rank column from reranker
-    subset_index = get_subset_index(searchname, search, reranker, args)
+    subset_index, unmatched = get_subset_index(searchname, search, reranker, args)
     sort_by = reranker.loc[subset_index,args.rank_column]
     return np.argsort(sort_by).to_numpy()
 
 def oracle(searchname, search, reranker, args):
     # Rerank search using objective column from reranker
-    subset_index = get_subset_index(searchname, search, reranker, args)
+    subset_index, unmatched = get_subset_index(searchname, search, reranker, args)
     sort_by = reranker.loc[subset_index,'objective']
     return np.argsort(sort_by).to_numpy()
 
@@ -101,7 +107,6 @@ def main(args=None):
 
         # === SORTING ORDERS ===
 
-        initial_order = search.index.tolist()
         # Correct sequence of GC generations for best-to-worst results
         oracle_order = oracle(search_name, search, rcoll, args)
         if args.print_all:
@@ -110,6 +115,8 @@ def main(args=None):
         reranked_order = rerank(search_name, search, rcoll, args)
         if args.print_all:
             print(f"Reranked order: {reranked_order}")
+        # In the event some ranks get dropped, you have to make the initial order last
+        initial_order = sorted(set(reranked_order).intersection(set(oracle_order)))
 
         # Rephrase above as 'which oracle value did you actually pull?'
         initial_as_oracle_order = list(map(lambda o: np.where(reranked_order == o)[0][0], initial_order))
@@ -145,7 +152,7 @@ def main(args=None):
         # === PLOTS ===
 
         fig, ax = plt.subplots()
-        subset_idx = get_subset_index(search_name, search, rcoll, args)
+        subset_idx, unmatched = get_subset_index(search_name, search, rcoll, args)
         if args.y == 'rank':
             y1 = initial_as_oracle_order
             y2 = rerank_as_oracle_order
