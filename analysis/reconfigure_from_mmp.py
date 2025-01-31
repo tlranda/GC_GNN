@@ -95,7 +95,7 @@ def convert(name, csv, collation, prior_id, args):
         # If > 1, different searches included it and that's no big deal, just
         # take the first result
         new_frame.loc[idx,collation.columns] = collation.loc[search[0]]
-        new_frame.loc[idx,'id'] = prior_id[idx]
+        new_frame.loc[idx,'id'] = prior_id[search[0]]
     return new_frame
 
 def main(args=None):

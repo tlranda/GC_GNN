@@ -32,6 +32,10 @@ def build():
             help="Y-axis value for charts (default: %(default)s)")
     prs.add_argument("--print-all", action='store_true',
             help="Print arrays for ordering (may lead to excessive text output, default: %(default)s)")
+    prs.add_argument("--expect-partial", action='store_true',
+            help="Expect for [rankcoll] to NOT identify every value in [searches] (default: %(default)s)")
+    prs.add_argument("--invert-sort", action='store_true',
+            help="If reranking-column should be MAXIMIZED, set this to true (default: %(default)s)")
     return prs
 
 def parse(args=None, prs=None):
@@ -79,10 +83,17 @@ def get_subset_index(searchname, search, lookup, args):
         if len(match) == 0:
             unmatched.append(idx)
             continue
-        index[idx] = match[0]
+        # Multi-matches should progressively use unique points
+        # THIS MIGHT NOT BE SEMANTICALLY CORRECT
+        for m in match:
+            if m not in index[:idx]:
+                index[idx] = m
+                break
     if len(unmatched) > 0:
         #raise ValueError(f"Could not find {len(unmatched)} / {len(search)} searches {unmatched} from '{searchname}' in {args.rankcoll}")
-        warnings.warn(f"Could not find {len(unmatched)} / {len(search)} searches {unmatched} from '{searchname}' in {args.rankcoll}", UserWarning)
+        if not args.expect_partial:
+            warnings.warn(f"Could not find {len(unmatched)} / {len(search)} searches {unmatched} from '{searchname}' in {args.rankcoll}", UserWarning)
+        # Trim unallocated portion
         index = index[:-len(unmatched)]
     return index, unmatched
 
@@ -90,13 +101,21 @@ def rerank(searchname, search, reranker, args):
     # Rerank search using rank column from reranker
     subset_index, unmatched = get_subset_index(searchname, search, reranker, args)
     sort_by = reranker.loc[subset_index,args.rank_column]
-    return np.argsort(sort_by).to_numpy()
+    if args.invert_sort:
+        sort_by *= -1
+    rerank_sorter = np.argsort(sort_by).to_numpy()
+    resorted = sort_by.index[rerank_sorter]
+    # rerank sorter is for search.loc, resorted is for reranker.loc
+    return rerank_sorter, resorted
 
 def oracle(searchname, search, reranker, args):
     # Rerank search using objective column from reranker
     subset_index, unmatched = get_subset_index(searchname, search, reranker, args)
     sort_by = reranker.loc[subset_index,'objective']
-    return np.argsort(sort_by).to_numpy()
+    rerank_sorter = np.argsort(sort_by).to_numpy()
+    resorted = sort_by.index[rerank_sorter]
+    # rerank sorter is for search.loc, resorted is for reranker.loc
+    return rerank_sorter, resorted
 
 def main(args=None):
     args = parse(args)
@@ -108,15 +127,19 @@ def main(args=None):
         # === SORTING ORDERS ===
 
         # Correct sequence of GC generations for best-to-worst results
-        oracle_order = oracle(search_name, search, rcoll, args)
+        oracle_search, oracle_order = oracle(search_name, search, rcoll, args)
         if args.print_all:
             print(f"Oracle order: {oracle_order}")
         # Predicted sequence of GC generations for best-to-worst results
-        reranked_order = rerank(search_name, search, rcoll, args)
+        rerank_search, reranked_order = rerank(search_name, search, rcoll, args)
         if args.print_all:
             print(f"Reranked order: {reranked_order}")
         # In the event some ranks get dropped, you have to make the initial order last
-        initial_order = sorted(set(reranked_order).intersection(set(oracle_order)))
+        # Based on rcoll order to guarantee matches in rcoll are consistent!
+        #import pdb
+        #pdb.set_trace()
+        initial_order = oracle_order[[oracle_search.tolist().index(_) for _ in range(len(oracle_search))]]
+        #sorted(set(reranked_order).intersection(set(oracle_order)))
 
         # Rephrase above as 'which oracle value did you actually pull?'
         initial_as_oracle_order = list(map(lambda o: np.where(reranked_order == o)[0][0], initial_order))
@@ -152,16 +175,19 @@ def main(args=None):
         # === PLOTS ===
 
         fig, ax = plt.subplots()
-        subset_idx, unmatched = get_subset_index(search_name, search, rcoll, args)
+        #subset_idx, unmatched = get_subset_index(search_name, search, rcoll, args)
         if args.y == 'rank':
             y1 = initial_as_oracle_order
             y2 = rerank_as_oracle_order
             ylabel = 'Oracle goodness (lower is better)'
         else:
-            subset = rcoll.loc[subset_idx, 'objective']
-            y1 = subset.to_numpy()[initial_order]
-            y2 = subset.to_numpy()[reranked_order]
-            ax.scatter(range(len(initial_order)), subset.to_numpy()[oracle_order], label='oracle')
+            y1 = search['objective']#rcoll.loc[initial_order,'objective']
+            y2 = rcoll.loc[reranked_order,'objective']
+            #subset = rcoll.loc[subset_idx, 'objective']
+            #y1 = subset.to_numpy()[np.asarray(initial_order)-min(initial_order)]
+            #y2 = subset.to_numpy()[np.asarray(reranked_order)-min(reranked_order)]
+            # subset.to_numpy()[np.asarray(oracle_order)-min(oracle_order)]
+            ax.scatter(range(len(initial_order)), rcoll.loc[oracle_order,'objective'], label='oracle')
             ylabel = 'Objective value (lower is better)'
         ax.scatter(range(len(initial_order)), y1,
                 label='Initial order')
@@ -172,11 +198,12 @@ def main(args=None):
         ax.set_title(f"Reranking for Search {search_name.stem}")
         ax.legend()
 
-        fig2, ax2 = plt.subplots()
-        ax2.scatter(rcoll.loc[subset_idx, 'original'], rcoll.loc[subset_idx,'predicted'])
-        ax2.set_xlabel('True performance bucket')
-        ax2.set_ylabel('Predicted performance bucket')
-        ax2.set_title(f'Bucket utilizations for Search {search_name.stem}')
+        if 'original' in rcoll.columns and 'predicted' in rcoll.columns:
+            fig2, ax2 = plt.subplots()
+            ax2.scatter(rcoll.loc[subset_idx, 'original'], rcoll.loc[subset_idx,'predicted'])
+            ax2.set_xlabel('True performance bucket')
+            ax2.set_ylabel('Predicted performance bucket')
+            ax2.set_title(f'Bucket utilizations for Search {search_name.stem}')
 
     plt.show()
 
