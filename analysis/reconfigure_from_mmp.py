@@ -54,7 +54,8 @@ def parse(args=None, prs=None):
             exist_from.append(f)
             exist_to.append(t)
         else:
-            warnings.warn(UserWarning, f"FROM CSV '{f}' does not exist")
+            warnings.warn(f"FROM CSV '{f}' does not exist", UserWarning)
+        t.parents[0].mkdir(exist_ok=True,parents=True)
     if len(exist_from) == 0:
         raise ValueError('None of the supplied FROM CSVs exist')
     args._from = exist_from
@@ -89,8 +90,9 @@ def convert(name, csv, collation, prior_id, args):
         mmp_name = int(pathlib.Path(row[args.mmp_column]).stem.rsplit('_',1)[1])
         search = np.where(collation['id'] == mmp_name)[0]
         if len(search) == 0:
+            # +2 on line for 1-based indexing and CSV header
             raise ValueError(f"Failed to find record for '{mmp_name}' from "
-                             f"'{name}' in collation records provided by "
+                             f"'{name}:{idx+2}' in collation records provided by "
                              f"'{args.collation}'")
         # If > 1, different searches included it and that's no big deal, just
         # take the first result

@@ -36,6 +36,12 @@ def build():
             help="Expect for [rankcoll] to NOT identify every value in [searches] (default: %(default)s)")
     prs.add_argument("--invert-sort", action='store_true',
             help="If reranking-column should be MAXIMIZED, set this to true (default: %(default)s)")
+    prs.add_argument("--export", default=None, type=pathlib.Path,
+            help="Give a path to export plot image to (default: display interactively)")
+    prs.add_argument("--format", default='png', choices=['png','pdf'],
+            help="Specify format for export (default: %(default)s)")
+    prs.add_argument("--title", default=None,
+            help="Override default plot title")
     return prs
 
 def parse(args=None, prs=None):
@@ -56,6 +62,9 @@ def parse(args=None, prs=None):
     args.searches = valid
     if len(dropped) > 0:
         warnings.warn(f"Files not found or not CSVs are dropped from search: {dropped}", UserWarning)
+    if args.export is not None:
+        if args.export.suffix != f".{args.format}":
+            args.export = args.export.with_suffix(f".{args.format}")
 
     return args
 
@@ -120,6 +129,9 @@ def oracle(searchname, search, reranker, args):
 def main(args=None):
     args = parse(args)
     rcoll = pd.read_csv(args.rankcoll)
+    if args.export is not None:
+        iter_value = 0
+        iterable_name = args.export.with_stem(f"{args.export.stem}_0")
     for search_name in args.searches:
         print(f"Evaluations for {search_name}")
         search = get_csv_with_size(search_name)
@@ -195,7 +207,10 @@ def main(args=None):
                 label='Re-sorted order')
         ax.set_xlabel('Trial #')
         ax.set_ylabel(ylabel)
-        ax.set_title(f"Reranking for Search {search_name.stem}")
+        if args.title is None:
+            ax.set_title(f"Reranking for Search {search_name.stem}")
+        else:
+            ax.set_title(args.title)
         ax.legend()
 
         if 'original' in rcoll.columns and 'predicted' in rcoll.columns:
@@ -205,7 +220,14 @@ def main(args=None):
             ax2.set_ylabel('Predicted performance bucket')
             ax2.set_title(f'Bucket utilizations for Search {search_name.stem}')
 
-    plt.show()
+        if args.export is None:
+            plt.show()
+            continue
+        while iterable_name.exists():
+            iter_value += 1
+            iterable_name = args.export.with_stem(f"{args.export.stem}_{iter_value}")
+        print(f"Export to {iterable_name}")
+        fig.savefig(iterable_name, format=args.format, dpi=300)
 
 if __name__ == "__main__":
     main()
