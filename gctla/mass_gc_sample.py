@@ -1,3 +1,8 @@
+"""
+    OLD -- PROBABLY DO NOT USE
+    Runs the GC on the syr2k problem to collect a LOT of samples for a given
+    syr2k seed.
+"""
 # Builtins
 import pathlib
 import random

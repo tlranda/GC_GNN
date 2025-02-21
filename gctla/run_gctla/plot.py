@@ -1,3 +1,6 @@
+"""
+    OLD PARTIAL SCRIPT DO NOT USE
+"""
 import numpy as np, matplotlib.pyplot as plt
 true = np.load('original_ranks.npy')
 N_FEATURES = 100

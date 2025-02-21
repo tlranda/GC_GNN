@@ -1,3 +1,9 @@
+"""
+    OLD DO NOT USE
+    Was a way to try and train the GC on MGA embeddings; it did not pan out
+    as the representation was too noisy for the GC to get anything to latch
+    onto
+"""
 # Train
 import time
 start_time = time.time()
