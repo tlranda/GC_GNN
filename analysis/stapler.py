@@ -1,3 +1,6 @@
+"""
+    Load a bunch of CSVs and "staple" them together
+"""
 import pandas as pd
 
 import argparse

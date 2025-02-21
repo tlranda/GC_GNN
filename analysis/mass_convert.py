@@ -1,3 +1,7 @@
+"""
+    Runs `reconfigure_from_mmp.py` on everything in `arafat_all` and pushes
+    the results into `arafat_all_convert`
+"""
 import subprocess
 import pathlib
 

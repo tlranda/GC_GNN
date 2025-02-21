@@ -1,3 +1,7 @@
+"""
+    Pulls out individual sources from collations, however the collation process
+    doesn't preserve every piece of information for all techniques
+"""
 import pandas as pd
 import pathlib
 

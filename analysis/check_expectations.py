@@ -1,3 +1,8 @@
+"""
+    Verify that arafat_all_convert records have all of the records EXPECTED to
+    exist there based on collation data. Always check locally to verify things
+    are actually missing first :)
+"""
 import pathlib
 import pandas as pd
 
