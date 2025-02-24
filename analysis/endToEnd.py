@@ -42,6 +42,8 @@ def build():
             help="Specify format for export (default: %(default)s)")
     prs.add_argument("--title", default=None,
             help="Override default plot title")
+    prs.add_argument("--reordered-export", default=None, type=pathlib.Path,
+            help="Drop CSV with reordering at this filename")
     return prs
 
 def parse(args=None, prs=None):
@@ -114,6 +116,15 @@ def rerank(searchname, search, reranker, args):
         sort_by *= -1
     rerank_sorter = np.argsort(sort_by).to_numpy()
     resorted = sort_by.index[rerank_sorter]
+    if args.reordered_export is not None:
+        old = None
+        if args.reordered_export.suffix != ".csv":
+            old = args.reordered_export
+            args.reordered_export /= searchname.name
+        args.reordered_export.parents[0].mkdir(exist_ok=True, parents=True)
+        search.loc[rerank_sorter].to_csv(args.reordered_export,index=False)
+        if old is not None:
+            args.reordered_export = old
     # rerank sorter is for search.loc, resorted is for reranker.loc
     return rerank_sorter, resorted
 
