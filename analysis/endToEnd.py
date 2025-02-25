@@ -44,6 +44,8 @@ def build():
             help="Override default plot title")
     prs.add_argument("--reordered-export", default=None, type=pathlib.Path,
             help="Drop CSV with reordering at this filename")
+    prs.add_argument("--no-plots", action="store_true",
+            help="Skip plot outputs (default: %(default)s)")
     return prs
 
 def parse(args=None, prs=None):
@@ -73,6 +75,8 @@ def parse(args=None, prs=None):
 def get_csv_with_size(name):
     # Infer size when not present based on filename
     csv = pd.read_csv(name)
+    if 'actually_measured' in csv.columns:
+        csv = csv[csv['actually_measured']].reset_index(drop=True)
     if 'size' in csv.columns:
         return csv
     for size in ['S','M','L','SM','ML','XL']:
@@ -89,8 +93,8 @@ def get_subset_index(searchname, search, lookup, args):
     strlookup = lookup[match_cols].astype(str)
     unmatched = []
     for (idx, row) in tqdm.tqdm(strsearch.iterrows(), total=len(strsearch)):
-        lookup = tuple(row)
-        match = np.where((strlookup == lookup).sum(axis=1) == len(match_cols))[0]
+        rowlookup = tuple(row)
+        match = np.where((strlookup == rowlookup).sum(axis=1) == len(match_cols))[0]
         if len(match) == 0:
             unmatched.append(idx)
             continue
@@ -197,6 +201,8 @@ def main(args=None):
 
         # === PLOTS ===
 
+        if args.no_plots:
+            continue
         fig, ax = plt.subplots()
         #subset_idx, unmatched = get_subset_index(search_name, search, rcoll, args)
         if args.y == 'rank':

@@ -56,8 +56,9 @@ def immediate_ultimate(csv, size, seed, tech, bench_prefix):
     if len(data[data['objective'] < 0]) > 0:
         data['objective'] *= (-1)
     #print(f"Keep {len(data)} rows from {csv}")
-    if len(data) == 0:
-        return None, None
+    remain_len = len(data)
+    if remain_len == 0:
+        return None, None, 0
 
     # Ultimate-term effectiveness
     best_result_idx = np.argmin(data['objective'])
@@ -74,16 +75,18 @@ def immediate_ultimate(csv, size, seed, tech, bench_prefix):
         print("\tIMMEDIATE BEST:"+str(data.loc[quick_result_idx,'objective']))
     print("\tULTIMATE BEST:"+str(data.loc[best_result_idx,'objective']))
     """
-    return quick, ult
+    return quick, ult, remain_len
 
 def table_prefix(idx):
     print(f"""
 \\begin{{table}}[h]
 \\caption{{Speedups of {'Polybench/C Apps' if idx == 0 else 'ECP Apps'}}}
 \\label{{tbl:{'polybench_speedup' if idx == 0 else 'ecp_speedup'}}}
-\\begin{{tabular}}{{|c|c|c|c|c|}}
+\\centering
+\\begin{{tabular}}{{|c|c|c|c|c|c|}}
 \\hline
-Benchmark & Size & Search Tool & First {CUTOFF} & Ultimate \\\\\\hline
+\\multirow{{2}}*{{Benchmark}} & \\multirow{{2}}*{{Size}} & \\multirow{{2}}*{{Search Tool}} & First {CUTOFF} & Best & Average \\\\\
+ & & & Speedup & Speedup & \\# Trials \\\\\\hline
 """)
 def table_suffix():
     print("""
@@ -99,13 +102,19 @@ def scan(basepath, altpaths=None):
     blacklisted_newtech = ['default+NN']
     nicename = {'default': 'Default',
                 'GPTune': 'GPTune',
-                'GPTune+NN': 'GPTune+NN',
+                'GPTune+NN': 'GPTune+NCS',
                 'bliss': 'BLISS',
-                'bliss+NN': 'BLISS+NN',
+                'bliss+NN': 'BLISS+NCS',
                 'opentuner': 'OpenTuner',
-                'opentuner+NN': 'OpenTuner+NN',
+                'opentuner+NN': 'OpenTuner+NCS',
                 'GaussianCopula': 'GC',
-                'GaussianCopula+NN': 'GC+NN',
+                'GaussianCopula+NN': 'GC+NCS',
+                'syr2k': 'SyR2K',
+                '3mm': '3MM',
+                'heat3d': 'Heat3D',
+                'amg': 'AMG',
+                'rsbench': 'RSBench',
+                'sw4lite': 'SW4Lite',
                 }
     #benchmarks = ['heat3d']
     for subtable_idx, subtable in enumerate(benchmarks):
@@ -130,13 +139,16 @@ def scan(basepath, altpaths=None):
                     results[size] = dict()
                 if tech not in results[size]:
                     results[size][tech] = {'quick': list(),
-                                           'ult': list()}
-                quick, ult = immediate_ultimate(csv, size, seed, tech, bench_prefix)
+                                           'ult': list(),
+                                           'trials': list(),
+                                           }
+                quick, ult, csv_trials = immediate_ultimate(csv, size, seed, tech, bench_prefix)
                 if ult is None:
                     continue
                 if quick is not None:
                     results[size][tech]['quick'].append(quick)
                 results[size][tech]['ult'].append(ult)
+                results[size][tech]['trials'].append(csv_trials)
                 # Now do alternatives
                 for alt in alts:
                     if not (alt / csv.name).exists():
@@ -146,13 +158,16 @@ def scan(basepath, altpaths=None):
                     newtech = tech + '+NN'
                     if newtech not in results[size]:
                         results[size][newtech] = {'quick': list(),
-                                                  'ult': list()}
-                    quick, ult = immediate_ultimate(altname, size, seed, newtech, bench_prefix)
+                                                  'ult': list(),
+                                                  'trials': list(),
+                                                  }
+                    quick, ult, csv_trials = immediate_ultimate(altname, size, seed, newtech, bench_prefix)
                     if ult is None:
                         continue
                     if quick is not None:
                         results[size][newtech]['quick'].append(quick)
                     results[size][newtech]['ult'].append(ult)
+                    results[size][newtech]['trials'].append(csv_trials)
             # Determine the best result to highlight
             best = dict()
             for size in ['SM','XL']:
@@ -228,6 +243,7 @@ def scan(basepath, altpaths=None):
                 for tech in ['default','GaussianCopula','GPTune','bliss','opentuner']:
                     if tech not in results[size].keys():
                         continue
+                    n_evals = np.asarray(results[size][tech]['trials']).mean()
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore')
                         vq = baseline / np.asarray(results[size][tech]['quick']).mean()
@@ -239,11 +255,12 @@ def scan(basepath, altpaths=None):
                     ult_prepost = ('','')
                     if tech == best[size]['ult'] or results[size][tech]['ult'] == results[size][best[size]['ult']]['ult']:
                         ult_prepost = ('\\textbf{','}')
-                    print(f"{row_prefix}{bench_prefix} & {size} & {nicename[tech]} & {quick_prepost[0]}{f'{vq:.4f}' if not np.isnan(vq) else '--' if tech != 'default' else '1.0000'}{quick_prepost[1]} & {ult_prepost[0]}{vu:.4f}{ult_prepost[1]} \\\\")
+                    print(f"{row_prefix}{nicename[bench_prefix]} & {size} & {nicename[tech]} & {quick_prepost[0]}{f'{vq:.4f}' if not np.isnan(vq) else '--' if tech != 'default' else '1.0000'}{quick_prepost[1]} & {ult_prepost[0]}{vu:.4f}{ult_prepost[1]} & {n_evals:g} \\\\")
                     newtech = tech+"+NN"
                     if newtech in results[size].keys():
                         if newtech in blacklisted_newtech:
                             continue
+                        n_alt_evals = np.asarray(results[size][newtech]['trials']).mean()
                         with warnings.catch_warnings():
                             warnings.simplefilter('ignore')
                             vq = baseline / np.asarray(results[size][newtech]['quick']).mean()
@@ -254,7 +271,7 @@ def scan(basepath, altpaths=None):
                         ult_prepost = ('','')
                         if newtech == best[size]['ult'] or results[size][newtech]['ult'] == results[size][best[size]['ult']]['ult']:
                             ult_prepost = ('\\textbf{','}')
-                        print(f"{row_prefix}{bench_prefix} & {size} & {nicename[newtech]} & {quick_prepost[0]}{f'{vq:.4f}' if not np.isnan(vq) else '--'}{quick_prepost[1]} & {ult_prepost[0]}{vu:.4f}{ult_prepost[1]} \\\\")
+                        print(f"{row_prefix}{nicename[bench_prefix]} & {size} & {nicename[newtech]} & {quick_prepost[0]}{f'{vq:.4f}' if not np.isnan(vq) else '--'}{quick_prepost[1]} & {ult_prepost[0]}{vu:.4f}{ult_prepost[1]} & {n_alt_evals:g} \\\\")
             print("\\hline")
         table_suffix()
 
