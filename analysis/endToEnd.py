@@ -79,7 +79,7 @@ def get_csv_with_size(name):
         csv = csv[csv['actually_measured']].reset_index(drop=True)
     if 'size' in csv.columns:
         return csv
-    for size in ['S','M','L','SM','ML','XL']:
+    for size in ['SM','ML','XL','S','M','L']:
         if size in map(lambda x: x.upper(), name.stem.split('_')):
             csv.insert(len(csv.columns), 'size', [size] * len(csv))
             return csv

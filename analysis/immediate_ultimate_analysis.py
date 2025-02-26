@@ -21,6 +21,11 @@ def immediate_ultimate(csv, size, seed, tech, bench_prefix):
     #if size == 'XL' and tech == 'opentuner' and bench_prefix == 'sw4lite':
     #    import pdb
     #    pdb.set_trace()
+    quick_result_idx = None
+    quick = None
+    ult_result_idx = None
+    ult = None
+    remain_len = None
     data = pd.read_csv(csv)
     #print(f"Read {len(data)} rows from {csv}")
     # Some data is reported as a rank rather than objective
@@ -58,14 +63,12 @@ def immediate_ultimate(csv, size, seed, tech, bench_prefix):
     #print(f"Keep {len(data)} rows from {csv}")
     remain_len = len(data)
     if remain_len == 0:
-        return None, None, 0
+        return quick, ult, ult_result_idx, remain_len
 
     # Ultimate-term effectiveness
-    best_result_idx = np.argmin(data['objective'])
-    ult = data.loc[best_result_idx,'objective']
+    ult_result_idx = np.argmin(data['objective'])
+    ult = data.loc[ult_result_idx,'objective']
     # Near-term effectiveness
-    quick_result_idx = None
-    quick = None
     if len(data) >= QUICK_CUTOFF:
         quick_result_idx = np.argmin(data.loc[:CUTOFF,'objective'])
         quick = data.loc[quick_result_idx,'objective']
@@ -73,9 +76,9 @@ def immediate_ultimate(csv, size, seed, tech, bench_prefix):
     print(f"{bench_prefix} @ {size} <> {tech} @ seed {seed} (via: {csv})")
     if quick_result_idx is not None:
         print("\tIMMEDIATE BEST:"+str(data.loc[quick_result_idx,'objective']))
-    print("\tULTIMATE BEST:"+str(data.loc[best_result_idx,'objective']))
+    print("\tULTIMATE BEST:"+str(data.loc[ult_result_idx,'objective']))
     """
-    return quick, ult, remain_len
+    return quick, ult, ult_result_idx, remain_len
 
 def table_prefix(idx):
     print(f"""
@@ -83,10 +86,11 @@ def table_prefix(idx):
 \\caption{{Speedups of {'Polybench/C Apps' if idx == 0 else 'ECP Apps'}}}
 \\label{{tbl:{'polybench_speedup' if idx == 0 else 'ecp_speedup'}}}
 \\centering
-\\begin{{tabular}}{{|c|c|c|c|c|c|}}
+\\begin{{tabular}}{{|c|c|c|c|c|}}
 \\hline
-\\multirow{{2}}*{{Benchmark}} & \\multirow{{2}}*{{Size}} & \\multirow{{2}}*{{Search Tool}} & First {CUTOFF} & Best & Average \\\\\
- & & & Speedup & Speedup & \\# Trials \\\\\\hline
+\\multirow{{3}}*{{Benchmark}} & Target & \\multirow{{3}}*{{Search Tool}} & (First {CUTOFF}, Best) & Average \\\\
+ & Size & & Speedup & \\# Trials \\\\
+ & & & & to Best \\\\\\hline
 """)
 def table_suffix():
     print("""
@@ -107,8 +111,8 @@ def scan(basepath, altpaths=None):
                 'bliss+NN': 'BLISS+NCS',
                 'opentuner': 'OpenTuner',
                 'opentuner+NN': 'OpenTuner+NCS',
-                'GaussianCopula': 'GC',
-                'GaussianCopula+NN': 'GC+NCS',
+                'GaussianCopula': 'GCTLA',
+                'GaussianCopula+NN': 'GC+NCS (ours)',
                 'syr2k': 'SyR2K',
                 '3mm': '3MM',
                 'heat3d': 'Heat3D',
@@ -142,13 +146,13 @@ def scan(basepath, altpaths=None):
                                            'ult': list(),
                                            'trials': list(),
                                            }
-                quick, ult, csv_trials = immediate_ultimate(csv, size, seed, tech, bench_prefix)
+                quick, ult, ult_idx, csv_trials = immediate_ultimate(csv, size, seed, tech, bench_prefix)
                 if ult is None:
                     continue
                 if quick is not None:
                     results[size][tech]['quick'].append(quick)
                 results[size][tech]['ult'].append(ult)
-                results[size][tech]['trials'].append(csv_trials)
+                results[size][tech]['trials'].append(ult_idx)
                 # Now do alternatives
                 for alt in alts:
                     if not (alt / csv.name).exists():
@@ -161,13 +165,13 @@ def scan(basepath, altpaths=None):
                                                   'ult': list(),
                                                   'trials': list(),
                                                   }
-                    quick, ult, csv_trials = immediate_ultimate(altname, size, seed, newtech, bench_prefix)
+                    quick, ult, ult_idx, csv_trials = immediate_ultimate(altname, size, seed, newtech, bench_prefix)
                     if ult is None:
                         continue
                     if quick is not None:
                         results[size][newtech]['quick'].append(quick)
                     results[size][newtech]['ult'].append(ult)
-                    results[size][newtech]['trials'].append(csv_trials)
+                    results[size][newtech]['trials'].append(ult_idx)
             # Determine the best result to highlight
             best = dict()
             for size in ['SM','XL']:
@@ -234,16 +238,23 @@ def scan(basepath, altpaths=None):
             for size in results.keys():
                 if size not in ['SM','XL']:
                     continue
+                multirow_bench = True
+                multirow_size = True
                 row_prefix = ''
                 if size == 'XL':
                     row_prefix = '\\rowcolor{gray!25}'
                 # NORMAL KEY ORDER:
                 # GC+NN, GPTune, GaussianCopula, bliss, default, opentuner
                 baseline = results[size]['default']['ult'][0]
-                for tech in ['default','GaussianCopula','GPTune','bliss','opentuner']:
+                techkeys = ['default','GaussianCopula','GPTune','bliss','opentuner']
+                maxidx = len(results[size].keys())
+                middleidx = maxidx // 2 - int(maxidx % 2 != 1)
+                curidx = 0
+                for tech in techkeys:
                     if tech not in results[size].keys():
                         continue
-                    n_evals = np.asarray(results[size][tech]['trials']).mean()
+                    # +1 because zero-based indexing
+                    n_evals = np.asarray(results[size][tech]['trials']).mean()+1
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore')
                         vq = baseline / np.asarray(results[size][tech]['quick']).mean()
@@ -255,12 +266,27 @@ def scan(basepath, altpaths=None):
                     ult_prepost = ('','')
                     if tech == best[size]['ult'] or results[size][tech]['ult'] == results[size][best[size]['ult']]['ult']:
                         ult_prepost = ('\\textbf{','}')
-                    print(f"{row_prefix}{nicename[bench_prefix]} & {size} & {nicename[tech]} & {quick_prepost[0]}{f'{vq:.4f}' if not np.isnan(vq) else '--' if tech != 'default' else '1.0000'}{quick_prepost[1]} & {ult_prepost[0]}{vu:.4f}{ult_prepost[1]} & {n_evals:g} \\\\")
+                    # Have to know how many rows to reuse this on
+                    if multirow_bench and curidx == middleidx:
+                        #bench_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {nicename[bench_prefix]} }}"
+                        bench_portion = f"{nicename[bench_prefix]}"
+                        multirow_bench = False
+                    else:
+                        bench_portion = " "
+                    if multirow_size and curidx == middleidx:
+                        #size_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {size} }}"
+                        size_portion = f"{size}"
+                        multirow_size = False
+                    else:
+                        size_portion = " "
+                    print(f"{row_prefix}{bench_portion} & {size_portion} & {nicename[tech]} & ({quick_prepost[0]}{f'{vq:.3f}' if not np.isnan(vq) else '--' if tech != 'default' else '1.000'}{quick_prepost[1]}, {ult_prepost[0]}{vu:.3f}{ult_prepost[1]}) & {f'{n_evals:.2f}' if n_evals-int(n_evals)!=0.0 else f'{n_evals:g}'} \\\\")
+                    curidx += 1
                     newtech = tech+"+NN"
                     if newtech in results[size].keys():
                         if newtech in blacklisted_newtech:
                             continue
-                        n_alt_evals = np.asarray(results[size][newtech]['trials']).mean()
+                        # +1 because zero-based indexing
+                        n_alt_evals = np.asarray(results[size][newtech]['trials']).mean()+1
                         with warnings.catch_warnings():
                             warnings.simplefilter('ignore')
                             vq = baseline / np.asarray(results[size][newtech]['quick']).mean()
@@ -271,7 +297,21 @@ def scan(basepath, altpaths=None):
                         ult_prepost = ('','')
                         if newtech == best[size]['ult'] or results[size][newtech]['ult'] == results[size][best[size]['ult']]['ult']:
                             ult_prepost = ('\\textbf{','}')
-                        print(f"{row_prefix}{nicename[bench_prefix]} & {size} & {nicename[newtech]} & {quick_prepost[0]}{f'{vq:.4f}' if not np.isnan(vq) else '--'}{quick_prepost[1]} & {ult_prepost[0]}{vu:.4f}{ult_prepost[1]} & {n_alt_evals:g} \\\\")
+
+                        if multirow_bench and curidx == middleidx:
+                            #bench_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {nicename[bench_prefix]} }}"
+                            bench_portion = f"{nicename[bench_prefix]}"
+                            multirow_bench = False
+                        else:
+                            bench_portion = " "
+                        if multirow_size and curidx == middleidx:
+                            #size_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {size} }}"
+                            size_portion = f"{size}"
+                            multirow_size = False
+                        else:
+                            size_portion = " "
+                        print(f"{row_prefix}{bench_portion} & {size_portion} & {nicename[newtech]} & ({quick_prepost[0]}{f'{vq:.3f}' if not np.isnan(vq) else '--'}{quick_prepost[1]}, {ult_prepost[0]}{vu:.3f}{ult_prepost[1]}) & {f'{n_alt_evals:.2f}' if n_alt_evals-int(n_alt_evals)!=0.0 else f'{n_alt_evals:g}'} \\\\")
+                        curidx += 1
             print("\\hline")
         table_suffix()
 
