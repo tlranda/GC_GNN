@@ -4,11 +4,13 @@ import pathlib
 # Dependent imports
 import numpy as np
 import pandas as pd
-from GC_TLA.base_plopper import ECP_Plopper
+#from GC_TLA.base_plopper import ECP_Plopper
+from ytopt.benchmark.sw4lite_exp.problem import SW4Lite_Plopper
 
 # Local imports
 from bliss_class import BLISS_Tuner
 
+"""
 def get_gpu_ids_from_section(section):
     ids = []
     for line in section:
@@ -25,12 +27,6 @@ def get_gpu_ids_from_section(section):
     return ids
 
 class SW4Lite_Plopper(ECP_Plopper):
-    mapping = {'S': 3,
-               'SM': 4,
-               'M': 5,
-               'ML': 6,
-               'L': 7,
-               'XL': 8}
     retries = 1
     def set_os_environ(self):
         import os, subprocess
@@ -74,10 +70,18 @@ class SW4Lite_Plopper(ECP_Plopper):
                 return float(process.stderr.decode('utf-8').split(' ')[-1])
             except ValueError:
                 return None
+"""
 
 class sw4lite_Tuner(BLISS_Tuner):
     default_percentage_sampled_by_acq = 0.10
     default_max_calls = 200
+
+    mapping = {'S': 3,
+               'SM': 4,
+               'M': 5,
+               'ML': 6,
+               'L': 7,
+               'XL': 8}
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -105,7 +109,8 @@ class sw4lite_Tuner(BLISS_Tuner):
     def objective(self, configuration, delay):
         configuration = dict((f'P{ind}', self.parameters[ind][v])
                              for (ind,v) in enumerate(configuration))
-        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()), f" -D{self.args.size}_DATASET")
+        obj = self.plopper.findRuntime(list(configuration.values()), list(configuration.keys()),
+                                       self.mapping[self.args.size])
         return obj * -1
 
     def build(self, prs=None):

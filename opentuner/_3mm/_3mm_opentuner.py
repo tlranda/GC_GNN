@@ -26,7 +26,7 @@ class _3mm_Tuner(OpenTuner_Tuner):
     def build(self):
         prs, opentuner_args, extra_args = super().build()
         _3mm = prs.add_argument_group('3MM')
-        _3mm.add_argument('--size', choices=['SM','XL'], default=None, required=True,
+        _3mm.add_argument('--size', choices=['SM','EXTRALARGE'], default=None, required=True,
                           help="Problem size to tune")
         return prs, opentuner_args, extra_args
 

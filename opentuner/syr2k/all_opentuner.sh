@@ -4,7 +4,8 @@
 for size in "SM" "XL" ; do
     for seed in "1234" "2024" "9999" ; do
         mkdir -p opentuner_results/${size}/seed_${seed};
-        strategies=$( PYTHONPATH=.. python3 syr2k_opentuner.py -lt | grep -v -e "PatternSearch" -e "pso-OX3" -e "pso-OX1" -e "RegularNelderMead" -e "RightNelderMead" -e "RegularTorczon" -e "RightTorczon" -e "MultiNelderMead" -e "MultiTorczon");
+        #strategies=$( PYTHONPATH=.. python3 syr2k_opentuner.py -lt | grep -v -e "PatternSearch" -e "pso-OX3" -e "pso-OX1" -e "RegularNelderMead" -e "RightNelderMead" -e "RegularTorczon" -e "RightTorczon" -e "MultiNelderMead" -e "MultiTorczon");
+        strategies=( "NormalGreedyMutation10" );
         for strat in ${strategies[@]}; do
             expect="opentuner_results/${size}/seed_${seed}/opentuner_${strat}.csv";
             todo="PYTHONPATH=.. python3 syr2k_opentuner.py --test-limit 200 --size ${size} --no-dups --technique ${strat} --random-seed ${seed} --csv-output ${expect}";

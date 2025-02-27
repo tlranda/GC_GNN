@@ -46,7 +46,7 @@ class _3mm_Tuner(BLISS_Tuner):
     def build(self, prs=None):
         prs = super().build(prs)
         _3mm = prs.add_argument_group("3mm")
-        _3mm.add_argument("--size", choices=['SM','XL'], default=None, required=True,
+        _3mm.add_argument("--size", choices=['SM','EXTRALARGE'], default=None, required=True,
                           help="Size to tune")
         return prs
 

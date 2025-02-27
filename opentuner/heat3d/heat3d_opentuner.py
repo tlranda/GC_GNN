@@ -27,7 +27,7 @@ class Heat3d_Tuner(OpenTuner_Tuner):
     def build(self):
         prs, opentuner_args, extra_args = super().build()
         Heat3d = prs.add_argument_group('Heat3d')
-        Heat3d.add_argument('--dataset-size', choices=['SM','XL'], default=None, required=True,
+        Heat3d.add_argument('--dataset-size', choices=['SM','EXTRALARGE'], default=None, required=True,
                           help="Problem size to tune")
         return prs, opentuner_args, extra_args
 
