@@ -16,6 +16,8 @@ command = ['python3',
 dir_in = pathlib.Path('arafat_all')
 dir_out = pathlib.Path('arafat_all_convert')
 for subd in dir_in.iterdir():
+    if subd.stem != 'syr2k':
+        continue
     if not subd.is_dir():
         print(f"Skip non-directory '{subd}'")
         continue

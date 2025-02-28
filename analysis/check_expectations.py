@@ -9,13 +9,13 @@ import pathlib
 
 collations = {
         # Polybench/C
-        #'syr2k': pd.read_csv('collations/syr2k_collated.csv'),
+        'syr2k': pd.read_csv('collations/syr2k_collated.csv'),
         #'_3mm': pd.read_csv('collations/_3mm_collated.csv'),
-        'heat3d': pd.read_csv('collations/heat3d_collated.csv'),
+        #'heat3d': pd.read_csv('collations/heat3d_collated.csv'),
         # ECP
-        'amg': pd.read_csv('collations/amg_collated.csv'),
-        'rsbench': pd.read_csv('collations/rsbench_collated.csv'),
-        'sw4lite': pd.read_csv('collations/sw4lite_collated.csv'),
+        #'amg': pd.read_csv('collations/amg_collated.csv'),
+        #'rsbench': pd.read_csv('collations/rsbench_collated.csv'),
+        #'sw4lite': pd.read_csv('collations/sw4lite_collated.csv'),
         }
 
 expected_searches = ['GaussianCopula','bliss','opentuner','GPTune']
@@ -25,7 +25,7 @@ for bench, csv in collations.items():
     expectation = dict()
     missing_mmp = []
     for expect in expected_searches:
-        specific_names = [_ for _ in names if expect in _]
+        specific_names = [_ for _ in names if expect.lower() in _.lower()]
         n_results = sum([len(csv[csv['source'] == name]) for name in specific_names])
         print(f"Expect: {bench} - {expect} has {n_results} records")
         expectation[expect] = n_results
@@ -44,7 +44,7 @@ for bench, csv in collations.items():
         load = pd.read_csv(name)
         print(f"Processing {name}...")
         for expect in expected_searches:
-            specific_names = [_ for _ in names if expect in _]
+            specific_names = [_ for _ in names if expect.lower() in _.lower()]
             n_results = 0
             for name in specific_names:
                 # Previously we summed len(subload), but that might not be accurate
@@ -61,8 +61,11 @@ for bench, csv in collations.items():
                     if len(full) >= 1:
                         matched += 1
                     else:
-                        mmp_id = int(pathlib.Path(row['id']).stem.split('_',1)[1])
-                        misclassified = load['id'].apply(lambda p: int(pathlib.Path(p).stem.split('_',1)[1]))
+                        try:
+                            mmp_id = int(pathlib.Path(row['id']).stem.split('_',1)[1])
+                        except ValueError:
+                            mmp_id = int(pathlib.Path(row['id']).stem.split('_')[-1])
+                        misclassified = load['id'].apply(lambda p: int(pathlib.Path(p).stem.split('_')[-1]))
                         second_chance = np.where(misclassified == mmp_id)[0]
                         if len(second_chance) == 0:
                             missed.append(idx)

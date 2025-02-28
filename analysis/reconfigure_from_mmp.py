@@ -86,23 +86,33 @@ def convert(name, csv, collation, prior_id, args):
     new_frame = csv.copy()
     for col in collation.columns:
         new_frame[col] = ""
+    drop = []
     for (idx, row) in tqdm.tqdm(new_frame.iterrows(), total=len(new_frame)):
         mmp_name = int(pathlib.Path(row[args.mmp_column]).stem.rsplit('_',1)[1])
         search = np.where(collation['id'] == mmp_name)[0]
         if len(search) == 0:
-            # +2 on line for 1-based indexing and CSV header
-            raise ValueError(f"Failed to find record for '{mmp_name}' from "
-                             f"'{name}:{idx+2}' in collation records provided by "
-                             f"'{args.collation}'")
+            drop.append(idx)
+            continue
         # If > 1, different searches included it and that's no big deal, just
         # take the first result
         new_frame.loc[idx,collation.columns] = collation.loc[search[0]]
         new_frame.loc[idx,'id'] = prior_id[search[0]]
+    if len(drop) > 0:
+        print(f"Dropping {len(drop)} results that couldn't be found")
+        new_frame = new_frame.drop(index=drop).reset_index(drop=True)
+        """
+        # +2 on line for 1-based indexing and CSV header
+        raise ValueError(f"Failed to find record for '{mmp_name}' from "
+                         f"'{name}:{idx+2}' in collation records provided by "
+                         f"'{args.collation}'")
+        """
     return new_frame
 
 def main(args=None):
     args = parse(args)
     collation = pd.read_csv(args.collation)
+    # RSBench had some unlabeled data
+    collation = collation[collation['id'] != '-1'].reset_index(drop=True)
     prior_id_value = collation['id']
     collation['id'] = collation['id'].apply(lambda x: int(pathlib.Path(x).stem.rsplit('_',1)[1]))
     print(f"Loaded collation '{args.collation}' with {len(collation)} records")

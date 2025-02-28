@@ -104,6 +104,10 @@ def scan(basepath, altpaths=None):
         altpaths = list()
     benchmarks = [['syr2k','_3mm','heat3d'],['amg','rsbench','sw4lite']]
     blacklisted_newtech = ['default+NN']
+    # TABLE NOTES
+    # FIRST existing work
+    # move GC+NCS to the bottom with a minor delimiter (2nd)
+    # +NCS post-analysis as a separate part of the table (also line-deliminated, 3rd)
     nicename = {'default': 'Default',
                 'GPTune': 'GPTune',
                 'GPTune+NN': 'GPTune+NCS',
@@ -279,39 +283,46 @@ def scan(basepath, altpaths=None):
                         multirow_size = False
                     else:
                         size_portion = " "
-                    print(f"{row_prefix}{bench_portion} & {size_portion} & {nicename[tech]} & ({quick_prepost[0]}{f'{vq:.3f}' if not np.isnan(vq) else '--' if tech != 'default' else '1.000'}{quick_prepost[1]}, {ult_prepost[0]}{vu:.3f}{ult_prepost[1]}) & {f'{n_evals:.2f}' if n_evals-int(n_evals)!=0.0 else f'{n_evals:g}'} \\\\")
+                    suffix = ""
+                    if bench_portion != " " or 'ours' in nicename[tech]:
+                        suffix = "\\cline{3-5}"
+                    print(f"{row_prefix}{bench_portion} & {size_portion} & {nicename[tech]} & ({quick_prepost[0]}{f'{vq:.3f}' if not np.isnan(vq) else '--' if tech != 'default' else '1.000'}{quick_prepost[1]}, {ult_prepost[0]}{vu:.3f}{ult_prepost[1]}) & {f'{n_evals:.2f}' if n_evals-int(n_evals)!=0.0 else f'{n_evals:g}'} \\\\{suffix}")
                     curidx += 1
-                    newtech = tech+"+NN"
-                    if newtech in results[size].keys():
-                        if newtech in blacklisted_newtech:
-                            continue
-                        # +1 because zero-based indexing
-                        n_alt_evals = np.asarray(results[size][newtech]['trials']).mean()+1
-                        with warnings.catch_warnings():
-                            warnings.simplefilter('ignore')
-                            vq = baseline / np.asarray(results[size][newtech]['quick']).mean()
-                        vu = baseline / np.asarray(results[size][newtech]['ult']).mean()
-                        quick_prepost = ('','')
-                        if newtech == best[size]['quick'] or results[size][newtech]['quick'] == results[size][best[size]['quick']]['quick']:
-                            quick_prepost = ('\\textbf{','}')
-                        ult_prepost = ('','')
-                        if newtech == best[size]['ult'] or results[size][newtech]['ult'] == results[size][best[size]['ult']]['ult']:
-                            ult_prepost = ('\\textbf{','}')
-
-                        if multirow_bench and curidx == middleidx:
-                            #bench_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {nicename[bench_prefix]} }}"
-                            bench_portion = f"{nicename[bench_prefix]}"
-                            multirow_bench = False
-                        else:
-                            bench_portion = " "
-                        if multirow_size and curidx == middleidx:
-                            #size_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {size} }}"
-                            size_portion = f"{size}"
-                            multirow_size = False
-                        else:
-                            size_portion = " "
-                        print(f"{row_prefix}{bench_portion} & {size_portion} & {nicename[newtech]} & ({quick_prepost[0]}{f'{vq:.3f}' if not np.isnan(vq) else '--'}{quick_prepost[1]}, {ult_prepost[0]}{vu:.3f}{ult_prepost[1]}) & {f'{n_alt_evals:.2f}' if n_alt_evals-int(n_alt_evals)!=0.0 else f'{n_alt_evals:g}'} \\\\")
-                        curidx += 1
+                for tech in techkeys:
+                    tech = tech+"+NN"
+                    if tech not in results[size].keys() or tech == 'default+NN':
+                        continue
+                    # +1 because zero-based indexing
+                    n_evals = np.asarray(results[size][tech]['trials']).mean()+1
+                    with warnings.catch_warnings():
+                        warnings.simplefilter('ignore')
+                        vq = baseline / np.asarray(results[size][tech]['quick']).mean()
+                    vu = baseline / np.asarray(results[size][tech]['ult']).mean()
+                    #print(f"{bench_prefix}@{size} <> {tech} (ULT: {vu}) (QUICK: {vq})")
+                    quick_prepost = ('','')
+                    if tech == best[size]['quick'] or results[size][tech]['quick'] == results[size][best[size]['quick']]['quick']:
+                        quick_prepost = ('\\textbf{','}')
+                    ult_prepost = ('','')
+                    if tech == best[size]['ult'] or results[size][tech]['ult'] == results[size][best[size]['ult']]['ult']:
+                        ult_prepost = ('\\textbf{','}')
+                    # Have to know how many rows to reuse this on
+                    if multirow_bench and curidx == middleidx:
+                        #bench_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {nicename[bench_prefix]} }}"
+                        bench_portion = f"{nicename[bench_prefix]}"
+                        multirow_bench = False
+                    else:
+                        bench_portion = " "
+                    if multirow_size and curidx == middleidx:
+                        #size_portion = f"\\multirow{{{maxidx-curidx}}}{{*}}{{ {size} }}"
+                        size_portion = f"{size}"
+                        multirow_size = False
+                    else:
+                        size_portion = " "
+                    suffix = ""
+                    if bench_portion != " " or 'ours' in nicename[tech]:
+                        suffix = "\\cline{3-5}"
+                    print(f"{row_prefix}{bench_portion} & {size_portion} & {nicename[tech]} & ({quick_prepost[0]}{f'{vq:.3f}' if not np.isnan(vq) else '--' if tech != 'default' else '1.000'}{quick_prepost[1]}, {ult_prepost[0]}{vu:.3f}{ult_prepost[1]}) & {f'{n_evals:.2f}' if n_evals-int(n_evals)!=0.0 else f'{n_evals:g}'} \\\\{suffix}")
+                    curidx += 1
             print("\\hline")
         table_suffix()
 

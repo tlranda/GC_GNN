@@ -100,10 +100,17 @@ def get_subset_index(searchname, search, lookup, args):
             continue
         # Multi-matches should progressively use unique points
         # THIS MIGHT NOT BE SEMANTICALLY CORRECT
+        matched = False
         for m in match:
             if m not in index[:idx]:
                 index[idx] = m
+                matched = True
                 break
+        if not matched:
+            # When I combine searches, the same thing could show up more than once
+            # Pick the least-used one
+            use_count = [np.count_nonzero(index == m) for m in match]
+            index[idx] = match[np.argmin(use_count)]
     if len(unmatched) > 0:
         #raise ValueError(f"Could not find {len(unmatched)} / {len(search)} searches {unmatched} from '{searchname}' in {args.rankcoll}")
         if not args.expect_partial:
@@ -144,6 +151,14 @@ def oracle(searchname, search, reranker, args):
 def main(args=None):
     args = parse(args)
     rcoll = pd.read_csv(args.rankcoll)
+    for col in rcoll.columns:
+        if col.startswith('p'):
+            try:
+                int(col[1:])
+            except:
+                continue
+            if rcoll.dtypes[col] != object:
+                rcoll[col] = rcoll[col].astype(int)
     if args.export is not None:
         iter_value = 0
         iterable_name = args.export.with_stem(f"{args.export.stem}_0")
@@ -163,8 +178,6 @@ def main(args=None):
             print(f"Reranked order: {reranked_order}")
         # In the event some ranks get dropped, you have to make the initial order last
         # Based on rcoll order to guarantee matches in rcoll are consistent!
-        #import pdb
-        #pdb.set_trace()
         initial_order = oracle_order[[oracle_search.tolist().index(_) for _ in range(len(oracle_search))]]
         #sorted(set(reranked_order).intersection(set(oracle_order)))
 
@@ -210,7 +223,7 @@ def main(args=None):
             y2 = rerank_as_oracle_order
             ylabel = 'Oracle goodness (lower is better)'
         else:
-            y1 = search['objective']#rcoll.loc[initial_order,'objective']
+            y1 = search.loc[sorted(oracle_search),'objective']#rcoll.loc[initial_order,'objective']
             y2 = rcoll.loc[reranked_order,'objective']
             #subset = rcoll.loc[subset_idx, 'objective']
             #y1 = subset.to_numpy()[np.asarray(initial_order)-min(initial_order)]
@@ -225,7 +238,8 @@ def main(args=None):
         ax.set_xlabel('Trial #')
         ax.set_ylabel(ylabel)
         if args.title is None:
-            ax.set_title(f"Reranking for Search {search_name.stem}")
+            pass
+            #ax.set_title(f"Reranking for Search {search_name.stem}")
         else:
             ax.set_title(args.title)
         ax.legend()
