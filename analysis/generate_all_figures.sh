@@ -21,3 +21,7 @@ for c in ${collate[@]}; do
         fi;
     done;
 done;
+python3 syr2k_global.py;
+python3 immediate_ultimate_analysis.py > latex_table.txt;
+python3 general_results_figure.py;
+
