@@ -1,3 +1,7 @@
+"""
+    Load a file and rerank it based on oracle data; indicate if the result is
+    "in-budget" for a runtime-specified value
+"""
 import numpy as np, pandas as pd
 import pathlib, argparse
 

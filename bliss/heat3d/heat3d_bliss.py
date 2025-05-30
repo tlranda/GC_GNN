@@ -41,7 +41,7 @@ class heat3d_Tuner(BLISS_Tuner):
     def build(self, prs=None):
         prs = super().build(prs)
         heat3d = prs.add_argument_group("Heat-3d")
-        heat3d.add_argument("--size", choices=['SM','XL'], default=None, required=True,
+        heat3d.add_argument("--size", choices=['SM','EXTRALARGE'], default=None, required=True,
                           help="Size to tune")
         return prs
 

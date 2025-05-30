@@ -1,3 +1,9 @@
+"""
+    OLD -- DO NOT USE
+    This was hyper-specific to analyzing a problem with classification buckets
+    and hasn't been maintained or documented to sufficient depth for continued
+    use
+"""
 import pprint
 import pandas as pd
 

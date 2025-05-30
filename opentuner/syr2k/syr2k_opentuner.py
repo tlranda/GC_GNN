@@ -28,7 +28,7 @@ class Syr2kTuner(OpenTuner_Tuner):
         super().__init__(*args, **kwargs)
 
         # Load data
-        base_path = pathlib.Path(__file__).parents[2] / 'syr2k_data' / 'oracles'
+        base_path = pathlib.Path(__file__).resolve().parents[2] / 'syr2k_data' / 'oracles'
         self.syr2k_size = self.args.size # Which one we'll actually use unless told otherwise
         self.syr2k_data = pd.read_csv(base_path / self.args.size / f"all_{self.args.size}.csv").sort_values(by=['objective']).reset_index(drop=True)
         self.syr2k_cols = [f'p{_}' for _ in range(6)]

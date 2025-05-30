@@ -1,3 +1,8 @@
+"""
+    OLD -- PROBABLY DO NOT USE THIS
+    Used to convert CSVs from identifying a configuration by its "filename" to
+    the actual search-space configuration
+"""
 import argparse
 import pandas as pd
 import re

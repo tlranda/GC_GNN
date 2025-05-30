@@ -12,8 +12,7 @@ import pathlib
 import warnings
 
 from opentuner_class import OpenTuner_Tuner
-from ytopt.benchmark.base_plopper import Polybench_Plopper
-#from GC_TLA.base_plopper import Polybench_Plopper
+from ytopt.benchmark.rsbench_exp.problem import RSBench_Plopper as ECP_Plopper
 
 """
     Based on demo: https://opentuner.org/tutorial/gettingstarted,
@@ -21,8 +20,16 @@ from ytopt.benchmark.base_plopper import Polybench_Plopper
 """
 
 class RSBench_Tuner(OpenTuner_Tuner):
+    lookup = {
+        'S':  100000,
+        'SM': 500000,
+        'M':  1000000,
+        'ML': 2500000,
+        'L':  5000000,
+        'XL': 10000000,
+    }
     def pmetric(self, timing_list):
-        return np.asarray(timing_list)[:,1:].mean()
+        return np.atleast_2d(timing_list)[:,1:].mean()
 
     def build(self):
         prs, opentuner_args, extra_args = super().build()
@@ -34,10 +41,12 @@ class RSBench_Tuner(OpenTuner_Tuner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.dataset_size = self.args.dataset_size
+        self.dataset_size = self.lookup[self.args.dataset_size]
+        #self.dataset_size = self.args.dataset_size
 
         template = pathlib.Path('./mmp.c').resolve()
-        self.plopper = Polybench_Plopper(str(template), str(template.parents[0]), output_extension='.c')
+        self.plopper = ECP_Plopper(str(template), str(template.parents[0]), output_extension='.c',
+                                   ignore_runtime_failure=True)
         self.plopper.metric = self.pmetric
 
         self.configure_desired_result([f'p{_}' for _ in range(9)]+['objective'])
@@ -70,7 +79,7 @@ class RSBench_Tuner(OpenTuner_Tuner):
         """
         cfg = desired_result.configuration.data
         cfg_params = dict((k.upper(),cfg[k]) for k in [f'p{_}' for _ in range(9)])
-        result_time = self.plopper.findRuntime(list(cfg_params.values()), list(cfg_params.keys()), f" -D{self.dataset_size}_DATASET")
+        result_time = self.plopper.findRuntime(list(cfg_params.values()), list(cfg_params.keys()), self.dataset_size)
         cfg['objective'] = result_time
         self.add_opentuner_result(desired_result)
         return Result(time=result_time)

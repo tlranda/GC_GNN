@@ -1,3 +1,4 @@
+# Syr2k ONLY -- draw CDF of other tuners in syr2k problem space
 # Builtins
 import argparse
 # Dependencies

@@ -29,6 +29,7 @@ import sklearn.gaussian_process as gp
 
 # Relative imports
 from auto_summarize_warnings import SummarizeWarnings
+from decorators import timed_func
 
 class BLISS_Tuner():
     # Default argument values declared at class namespace so subclasses can
@@ -45,6 +46,7 @@ class BLISS_Tuner():
     default_throttling_timeout_factor = 2.5
     default_seed = 1234
 
+    @timed_func
     def __init__(self,
                  parser: Optional[argparse.ArgumentParser]=None,
                  args: Optional[argparse.Namespace]=None,
@@ -101,10 +103,12 @@ class BLISS_Tuner():
             super().func(*args, **kwargs)
             # Then your own implementation / extension here
     """
+    @timed_func
     def build_parameters(self) -> List[List[object]]:
         # Return list of hyperparameters (a list of options for hyperparameter)
         pass
 
+    @timed_func
     def objective(self,
                   configuration: List[object],
                   delay: int,
@@ -197,6 +201,7 @@ class BLISS_Tuner():
 
         return args
 
+    @timed_func
     def get_results(self):
         # Retrieve all tracked experimental results
         column_names = [f'p{_}' for _ in range(len(self.parameters))]
@@ -235,6 +240,7 @@ class BLISS_Tuner():
         (unless you intend to change how BLISS itself operates)
     """
 
+    @timed_func
     def surrogate(self,
                   model: object,
                   configurations: List[List[object]],
@@ -243,6 +249,7 @@ class BLISS_Tuner():
             # Returns mu, std
             return model.predict(configurations, return_std=True)
 
+    @timed_func
     def basic_acquisition(self,
                           model: object,
                           predict_configurations: List[List[object]],
@@ -254,6 +261,7 @@ class BLISS_Tuner():
         mu = mu[:] # Redundant?
         return yhat, best, mu, std
 
+    @timed_func
     def acquisition_ei(self,
                        model: object,
                        predict_configurations: List[List[object]],
@@ -262,6 +270,7 @@ class BLISS_Tuner():
         Z = (mu - best) / (std + 1E-9)
         return (mu - best)*norm.cdf(Z) + std*norm.pdf(Z)
 
+    @timed_func
     def acquisition_pi(self,
                        model: object,
                        predict_configurations: List[List[object]],
@@ -271,6 +280,7 @@ class BLISS_Tuner():
         probs = norm.cdf(Z)
         return probs
 
+    @timed_func
     def acquisition_ucb(self,
                         model: object,
                         predict_configurations: List[List[object]],
@@ -283,6 +293,7 @@ class BLISS_Tuner():
         Kappa = np.sqrt(v * (2 * np.log((t ** (d/2. + 2))* (np.pi ** 2)/(3. * delta))))
         return mu + Kappa*(std+1E-9)
 
+    @timed_func
     def randomchoice_sample(self,
                             n_samples: int,
                             ) -> List[List[object]]:
@@ -297,6 +308,7 @@ class BLISS_Tuner():
         samples = list(map(list,samples))
         return samples
 
+    @timed_func
     def opt_acquisition(self,
                         model: object,
                         acqval: int,
@@ -316,6 +328,7 @@ class BLISS_Tuner():
         ix = np.argmax(scores)
         return predict_configurations[ix]
 
+    @timed_func
     def get_lookahead_status(self,
                              index: int,
                              delay: int,
@@ -359,6 +372,7 @@ class BLISS_Tuner():
         lookahead = int(np.mean(lookahead_selection_list))
         return lookahead
 
+    @timed_func
     def initial_sampling(self):
         """
             Collect a number of initial configurations randomly and perform
@@ -380,6 +394,7 @@ class BLISS_Tuner():
                 m.fit(self.configurations,
                       self.evaluations)
 
+    @timed_func
     def run_BLISS(self):
         # Performs the BLISS process to learn the space and model preference
 
@@ -487,5 +502,8 @@ class BLISS_Tuner():
 
 if __name__ == '__main__':
     bt = BLISS_Tuner()
+    start = time.time()
     bt.run_BLISS()
+    end = time.time()
+    print(f"Total tuning time: {end-start:.6f}")
 

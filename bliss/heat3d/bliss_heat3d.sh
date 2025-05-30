@@ -5,7 +5,7 @@ module remove nvhpc;
 cd /home/trandall/GC_GNN/bliss/heat3d;
 
 # Execute all seeds on all sizes for all techniques, log failures
-for size in "SM" "XL" ; do
+for size in "SM" "EXTRALARGE" ; do
     mkdir -p bliss_results/${size};
     for seed in "1234" "2024" "9999" ; do
         date;

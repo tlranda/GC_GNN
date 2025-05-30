@@ -1,3 +1,9 @@
+"""
+    OLD -- PROBABLY DO NOT USE
+    Hard-coded script to demonstrate histogram of coarse-vs-fine grained bins
+    back when we tried to figure out how many classes to predict and if those
+    classes made sense to utilize
+"""
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd

@@ -4,8 +4,10 @@ import pandas as pd
 
 # Local imports
 from bliss_class import BLISS_Tuner
+from decorators import timed_func
 
 class Syr2k_Tuner(BLISS_Tuner):
+    @timed_func
     def __init__(self, *args):
         super().__init__(*args)
         # Load exhaustive dataset
@@ -21,6 +23,7 @@ class Syr2k_Tuner(BLISS_Tuner):
         p5 = ['256','4','8','16','20','32','50','64','80','100','128']
         return [p0,p1,p2,p3,p4,p5]
 
+    @timed_func
     def objective(self, configuration, delay):
         # Look up configuration in dataset and report its value
         search = tuple([self.parameters[ind][v] for (ind,v) in enumerate(configuration)])
