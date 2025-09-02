@@ -51,12 +51,12 @@ def main():
     data = pd.read_csv(args.bucket_csv)
     try:
         ground_truth = data[args.ground_truth_col]
-    except:
-        raise
+    except KeyError as ke:
+        raise KeyError(f"No such column '{args.ground_truth_col}' in {args.bucket_csv}; available columns: {list(data.columns)}") from ke
     try:
         prediction   = data[args.prediction_col]
-    except:
-        raise
+    except KeyError as ke:
+        raise KeyError(f"No such column '{args.prediction_col}' in {args.bucket_csv}; available columns: {list(data.columns)}") from ke
 
     # Set plot with wide viewing angle as the figure should be wider than tall
     if not args.no_plot:
