@@ -17,6 +17,8 @@ def build():
     prs = argparse.ArgumentParser()
     prs.add_argument("--target-size", dest='tgt_size', choices=['SM','XL'],
                      default='SM', help=f"Target size to evaluate against {d}")
+    prs.add_argument("--sources", nargs="+", default=None,
+                     help="CSVs defining source points to use for search")
     prs.add_argument("--thresholds", nargs="+", type=float, default=None,
                      required=True, help="Proportion of accepted minima to evaluate")
     return prs
@@ -33,6 +35,9 @@ def load_data(args):
     base_path = pathlib.Path(__file__).parents[1] / 'syr2k_data'
     # Accumulate all data
     data = None
+    """
+    # Loading source sizes -- disabled due to page-rank centrality not quite
+    # making that work as I thought it would go
     for src_size in ['S','M','L']:
         src = (base_path / 'syr2k_reference').joinpath(f"syr2k_{src_size}.csv")
         csv = pd.read_csv(src)
@@ -44,6 +49,7 @@ def load_data(args):
             data = csv
         else:
             data = pd.concat((data,csv))
+    """
     # Fetch target data
     tgt = (base_path / 'oracles').joinpath(args.tgt_size).joinpath(f"all_{args.tgt_size}.csv")
     csv = pd.read_csv(tgt)
@@ -51,16 +57,21 @@ def load_data(args):
     csv.insert(0,'size',[args.tgt_size] * len(csv))
     # Re-sort for objective lookups
     csv = csv.sort_values(by=['objective']).reset_index(drop=True)
-    data = pd.concat((data,csv))
+    if data is None:
+        data = csv
+    else:
+        data = pd.concat((data,csv))
     # Single index over all data so indexing can be unique but sorted rank still accessible
     data = data.reset_index(names="rank_within_size")
     return data
 
-def rank(query):
-    global all_data, nr_vars
-    select = (all_data == query).sum(1)
-    matched = np.where(select == nr_vars)[0]
-    return matched[0]
+def query_node_ids(all_data, searchspace, nr_vars, queries):
+    matches = (-1) * np.ones(len(queries))
+    for idx, query in enumerate(queries):
+        params = list(searchspace.keys())
+        select = (all_data[params] == query[params]).sum(1)
+        matches[idx] = np.where(select == nr_vars)[0][0]
+    return matches
 
 def make_neighbors_for_idx(args):
     idx, row, all_data, searchspace, indices = args
@@ -130,46 +141,45 @@ def make_neighbors(searchspace, all_data):
     # Build neighbors dictionary from the results
     for idx, neighbor_set in results:
         neighbors[idx] = neighbor_set
-    """
-    for (idx, row) in tqdm.tqdm(all_data.iterrows(), total=len(all_data)):
-        neighbors[idx] = set()
-        for leftout_param in searchspace.keys():
-            neighbors_arr = None
-            for param in searchspace.keys():
-                if param == leftout_param:
-                    continue
-                candidates = indices[param][row[param]]
-                if leftout_param != 'size':
-                    improving_obj = (all_data.loc[candidates,'objective'] < row['objective']).to_numpy()
-                    candidates = candidates[improving_obj]
-                if neighbors_arr is None:
-                    neighbors_arr = candidates
-                else:
-                    neighbors_arr = neighbors_arr[np.isin(neighbors_arr,
-                                                          candidates,
-                                                          assume_unique=True)]
-            neighbors[idx].update(neighbors_arr)
-        neighbors[idx].remove(idx)
-    """
     return neighbors
-    # nidxs_dict = dictionary mapping a tuple of bitstring to node_idx (0->#nodes) and fitness value, essentially decides what node IDs to use
-    # Uses itertools.product(*list_params(list_indices_for_param_values)) as ordering for node ID's in case that order matters
 
-    # Use bloopy analysis critical points to get saddles, minima, maxima, regular points
-    # same iteration order as node IDs previously
-    # used a bounded neighbors perdim, ie: without wraparound, if you can step once left or right on a single dimension, that config is considered a neighbor
-    """
-    Setting this exactly the same would mean that the only connection from a source point is its exact match in the target space (assuming we order target spaces to be adjacent, which isn't possible in 1D)
-    'circular' would include wraparound
-    'hamming' includes ALL 1-edit deviations
-    """
-    # Searches neighbors of the point to find how many have larger objectives (bloopy is objective maximizer, we can write as minimize)
-    # also counts number of dims is minimal += 1 when finding at all neighbors are larger
-    # If the source point and any of its neighbors are infinite, marks source as Regular and ceases neighbor search on the source (will be symmetric for the other neighbors)
-    # After checking all neighbors, classifies this point as regular (condition described above regarding infinites), local maximum if no objective better than it, local minima if smallest in all neighbors, else saddle
-    # Does this for all points and all of their neighbors and returns a mapping of parameterization --> (class, fitness, nodeID)
-    # Separately remaps this to nodeID --> (parameterization, fitness, class)
+def centrality_analysis(neighbors, all_data, glob_argmin, glob_fit, sources,
+                        identifier, args):
+    G = nx.DiGraph()
+    G.add_nodes_from(range(len(all_data)))
 
+    # Connect every edge that comes from a source in BFS fashion
+    connected = set()
+    to_connect = set(sources)
+    while len(to_connect) > 0:
+        new_to_connect = set()
+        # Ensure that work to-be-done on this iteration does not queue itself
+        # for the next loop
+        connected.update(to_connect)
+        for src in to_connect:
+            # Add all outgoing edges
+            G.add_edges_from([(src,tgt) for tgt in neighbors[src]])
+            # Queue any nodes that have not been connected
+            new_to_connect.update(set(neighbors[src]).difference(connected))
+        to_connect = new_to_connect
+
+    # Get centrality for the graph
+    centrality = nx.algorithms.link_analysis.pagerank_alg.pagerank(G)
+    # Evaluate the centrality of the global optimum
+    global_centrality = centrality[glob_argmin]
+    print(f"{identifier}'s global optimum centrality: {global_centrality}")
+
+    # Get global centrality for acceptable thresholds
+    # Assumes .values() will order based on .keys() order being 0->max index
+    centrality = np.abs(np.asarray(list(centrality.values())))
+    total_centrality = centrality.sum()
+    print(f"Total graph centrality = {total_centrality}")
+    for threshold in args.thresholds:
+        target_objective = glob_fit * (1+threshold)
+        acceptable_minima = all_data[all_data['objective'] <= target_objective].index.to_numpy()
+
+        acceptable_centrality = centrality[acceptable_minima].sum()
+        print(f"For threshold {threshold}, acceptable centrality = {acceptable_centrality}")
 
 def main(args):
     # Defines the search space and a few values bsaed on its size and perplexity
@@ -181,23 +191,12 @@ def main(args):
      'p4': [4,8,16,20,32,50,64,80,100,128,2048],
      'p5': [4,8,16,20,32,50,64,80,100,128,256],
      'size': ['S','SM','M','L','XL'],
-    } # |p#'s| = 2,2,2,11,11,11,5
+    } # |searchspace| = 2x2x2x11x11x11x5
     param_cols = list(searchspace.keys())
-    bsize = sum(map(len,searchspace.values()))   # 44
-    nr_vars = len(param_cols)                    # 7
+    bsize = sum(map(len,searchspace.values())) # 44
+    nr_vars = len(param_cols)                  # 7
 
     all_data = load_data(args)
-
-    """
-    # disc_space = literally the same thing but in bloopy
-    # Determine how bitstrings will work
-    bitstring_index = 0
-    boundary_list = [] # List of bitstring indices as inclusive tuples
-    for param in searchspace.values():
-        boundary_list.append((bitstring_index, bitstring_index+(len(param)-1)))
-        bitstring_index += len(param)
-    [(0,1),(2,3),(4,5),(6,16),(17,27),(28,38),(39,43)]
-    """
 
     # Look up the global optimum
     glob_argmin = all_data.loc[(all_data['size'] == args.tgt_size) &
@@ -208,29 +207,13 @@ def main(args):
     # These are ALL of the edges for our graph
     neighbors = make_neighbors(searchspace, all_data)
 
-    # Build the graph
-    G = nx.DiGraph()
-    G.add_nodes_from(range(len(all_data)))
-    for src, tgt_list in neighbors.items():
-        G.add_edges_from([(src,tgt) for tgt in tgt_list])
-
-    # Get centrality for the graph
-    centrality_dict = nx.algorithms.link_analysis.pagerank_alg.pagerank(G)
-    # Assumes .values() will order based on .keys() order being 0->max index
-    abs_centrality = np.abs(np.asarray(list(centrality_dict.values())))
-    # Evaluate the centrality of the global optimum
-    global_centrality = centrality_dict[glob_argmin]
-    print(f"Global Centrality: {global_centrality}")
-
-    # Get global centrality for acceptable thresholds
-    total_centrality = abs_centrality.sum()
-    print(f"Total graph centrality = {total_centrality}")
-    for threshold in args.thresholds:
-        target_objective = glob_fit * (1+threshold)
-        acceptable_minima = all_data[all_data['objective'] <= target_objective].index.to_numpy()
-
-        acceptable_centrality = abs_centrality[acceptable_minima].sum()
-        print(f"For threshold {threshold}, acceptable centrality = {acceptable_centrality}")
+    # Build the GLOBAL graph and compute its centrality metrics
+    centrality_analysis(neighbors, all_data, glob_argmin, glob_fit,
+                        list(range(len(all_data))), "Global", args)
+    # If user gave sources, build that graph and compute its centrality metrics
+    if args.sources is not None and len(args.sources) > 0:
+        centrality_analysis(neighbors, all_data, glob_argmin, glob_fit,
+                            sources, "Given sources", args)
 
 if __name__ == '__main__':
     main(parse())
